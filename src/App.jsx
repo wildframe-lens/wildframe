@@ -139,16 +139,38 @@ function App() {
     }
   }
 
-  function downloadPhoto(photo) {
-    const link = document.createElement('a')
-    link.href = photo.url
-    link.download = photo.file_path.split('/').pop() || 'wildframe-photo'
-    link.target = '_blank'
-    link.rel = 'noreferrer'
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
+ 
+async function downloadPhoto(photo) {
+  try {
+    const response = await fetch(photo.url);
+
+    console.log("Download response:", response.status, response.ok);
+
+    if (!response.ok) {
+      throw new Error('Photo download failed');
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = objectUrl;
+    link.download =
+      photo.file_path?.split('/').pop() ||
+      photo.file_path?.split('/').pop() ||
+      'wildframe-photo.jpg';
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  } catch (error) {
+    console.error('Download error:', error);
+    setError?.('Photo download nahi hui. Dobara try karein.');
   }
+}
+
 
   return (
     <div className="site-shell">
