@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase, isSupabaseConfigured } from './supabaseClient'
-import { Camera, Leaf, LockKeyhole, LogOut, Upload, X, Trash2, ArrowDownToLine, Images, Menu } from 'lucide-react'
+import { Camera, Leaf, LockKeyhole, LogOut, Upload, X, Trash2, ArrowDownToLine, Images, Menu, Instagram, Save, Flower } from 'lucide-react'
 
 const BUCKET = 'wildframe-photos'
 const MAX_FILE_MB = 8
+const DEFAULT_INSTAGRAM_URL = 'https://www.instagram.com/hex.satyam/'
 const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
 
 function App() {
@@ -20,6 +21,14 @@ function App() {
   const [caption, setCaption] = useState('')
   const [file, setFile] = useState(null)
   const [mobileMenu, setMobileMenu] = useState(false)
+  const [activeCategory, setActiveCategory] = useState('All')
+  const [contactName, setContactName] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactNote, setContactNote] = useState('')
+  const [contactStatus, setContactStatus] = useState('')
+  const [contactSending, setContactSending] = useState(false)
+  const [instagramUrl, setInstagramUrl] = useState(DEFAULT_INSTAGRAM_URL)
+  const [instagramInput, setInstagramInput] = useState(DEFAULT_INSTAGRAM_URL)
 
   const isAdmin = Boolean(session?.user)
 
@@ -43,6 +52,44 @@ function App() {
     setLoading(false)
   }
 
+  async function loadInstagramSetting() {
+    if (!isSupabaseConfigured) {
+      setInstagramUrl(DEFAULT_INSTAGRAM_URL)
+      setInstagramInput(DEFAULT_INSTAGRAM_URL)
+      return
+    }
+    const { data } = await supabase
+      .from('site_settings')
+      .select('instagram_url')
+      .eq('id', 1)
+      .maybeSingle()
+    const url = data?.instagram_url || DEFAULT_INSTAGRAM_URL
+    setInstagramUrl(url)
+    setInstagramInput(url)
+  }
+
+  async function saveInstagramSetting(e) {
+    e.preventDefault()
+    setError('')
+    setNotice('')
+    if (!isAdmin) return setError('Instagram link change karne ke liye Admin Login zaroori hai.')
+    const value = instagramInput.trim()
+    if (value && !/^https:\/\/(www\.)?instagram\.com\//i.test(value)) {
+      return setError('Instagram ka valid profile URL daalein (https://www.instagram.com/username/).')
+    }
+    setBusy(true)
+    const { error: saveError } = await supabase
+      .from('site_settings')
+      .upsert({ id: 1, instagram_url: value || null }, { onConflict: 'id' })
+    setBusy(false)
+    if (saveError) {
+      setError('Instagram link save nahi hua. Supabase mein site_settings setup aur Admin UUID policy check karein.')
+      return
+    }
+    setInstagramUrl(value)
+    setNotice('Instagram link save ho gaya!')
+  }
+
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setLoading(false)
@@ -53,10 +100,58 @@ function App() {
       setSession(nextSession)
     })
     loadPhotos()
+    loadInstagramSetting()
     return () => listener.subscription.unsubscribe()
   }, [])
 
   const photoCount = useMemo(() => String(photos.length).padStart(2, '0'), [photos.length])
+  const categories = ['All', 'Forests','Wildlife','Flowers','Landscapes']
+  const categoryKeywords = {
+    Forests: ['forest', 'woods', 'cedar', 'tree', 'woodland'],
+    Wildlife: ['wildlife', 'fox', 'bird', 'deer', 'animal', 'owl', 'bear'],
+   Flowers: ['flower', 'flowers', 'blossom', 'petal', 'bloom', 'rose', 'tulip', 'sunflower', 'lotus', 'daisy'],
+    Landscapes: ['landscape', 'sunset', 'sunrise', 'sky', 'meadow', 'valley']
+  }
+  const visiblePhotos = activeCategory === 'All' ? photos : photos.filter((photo) => {
+    const text = `${photo.caption || ''} ${photo.file_path || ''}`.toLowerCase()
+    return categoryKeywords[activeCategory].some((keyword) => text.includes(keyword))
+  })
+
+  async function prepareContactNote(e) {
+    e.preventDefault()
+    setContactStatus('')
+    setContactSending(true)
+    try {
+      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: 'service_m2waixa',
+          template_id: 'template_8tv5o7d',
+          user_id: '2Da_2ra3_KVYaCwwH',
+          template_params: {
+            from_name: contactName.trim(),
+            reply_to: contactEmail.trim(),
+            message: contactNote.trim()
+          }
+        })
+      })
+      const resultText = await response.text()
+      if (!response.ok) {
+        throw new Error(resultText || 'EmailJS could not send the message.')
+      }
+      setContactStatus('Thank you! Your message has been sent successfully.')
+      setContactName('')
+      setContactEmail('')
+      setContactNote('')
+    } catch (err) {
+      console.error('WildFrame contact form error:', err)
+      const detail = String(err?.message || 'Unknown error').slice(0, 240)
+      setContactStatus(`Message send nahi ho paya: ${detail}`)
+    } finally {
+      setContactSending(false)
+    }
+  }
 
   async function signIn(e) {
     e.preventDefault()
@@ -181,8 +276,9 @@ async function downloadPhoto(photo) {
         </a>
         <button className="mobile-toggle icon-button" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Toggle menu"><Menu /></button>
         <nav className={mobileMenu ? 'nav-links open' : 'nav-links'}>
-          <a href="#gallery" onClick={() => setMobileMenu(false)}>Gallery</a>
-          <a href="#about" onClick={() => setMobileMenu(false)}>About</a>
+          <a href="#gallery" onClick={() => setMobileMenu(false)}>Collection</a>
+          <a href="#about" onClick={() => setMobileMenu(false)}>Our story</a>
+          <a href="#contact" onClick={() => setMobileMenu(false)}>Leave a note</a>
           {isAdmin ? (
             <button className="nav-admin" onClick={signOut}><LogOut size={15} /> Sign out</button>
           ) : (
@@ -209,20 +305,40 @@ async function downloadPhoto(photo) {
                   <a className="primary-button" href="#gallery">Explore the gallery <span>↗</span></a>
                 </div>
                 <div className="hero-note"><Camera size={15} /> REAL MOMENTS. NATURALLY CAPTURED.</div>
-                <div className="hero-index">01 <span>/</span> 03</div>
+                <div className="hero-index">01 <span>/</span> {photoCount}</div>
               </section>
       
-              <section className="intro-strip">
+              <section className="intro-strip" aria-label="WildFrame philosophy">
                 <div><span className="strip-label">A PERSONAL COLLECTION</span><h2>Small details. <em>Big stories.</em></h2></div>
                 <p>Every photo is a reminder to slow down, observe, and appreciate the wild beauty around us.</p>
+                <div className="intro-signature"><span>MADE SLOWLY, IN THE PLACES THAT ASK US TO PAUSE.</span><em><i />No two mornings alike<i /></em></div>
+              </section>
+
+              <section className="quote-section" aria-label="A note about nature">
+                <div className="quote-image" role="img" aria-label="Quiet river winding through a forest" />
+                <p>“On patience, weather &amp; the long way home”</p>
               </section>
       
               <section className="gallery-section" id="gallery">
                 <div className="section-heading">
-                  <div><span className="strip-label">THE PHOTO JOURNAL</span><h2>Captured <em>in nature</em></h2></div>
+                  <div><span className="strip-label">THE COLLECTION</span><h2>A world, <em>unhurried.</em></h2><p className="section-description">A growing field journal of places that make you feel a little smaller, and a little more at home.</p></div>
                   <div className="photo-count"><strong>{photoCount}</strong><span>PHOTOGRAPHS</span></div>
                 </div>
       
+                <div className="category-filters" role="group" aria-label="Filter photographs by category">
+                  {categories.map((category) => <button key={category} type="button" className={activeCategory === category ? 'category-filter active' : 'category-filter'} onClick={() => setActiveCategory(category)}>{category}</button>)}
+                </div>
+
+                {isAdmin && (
+                  <form className="upload-panel instagram-settings-panel" onSubmit={saveInstagramSetting}>
+                    <div className="upload-heading"><div className="upload-icon"><Instagram size={20} /></div><div><h3>Instagram profile link</h3><p>Add your profile URL here; the footer icon will open it.</p></div></div>
+                    <div className="instagram-setting-fields">
+                      <input className="caption-input" type="url" value={instagramInput} onChange={(e) => setInstagramInput(e.target.value)} placeholder="https://www.instagram.com/your_username/" aria-label="Instagram profile URL" />
+                      <button className="primary-button upload-button" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save Instagram link'} <Save size={16} /></button>
+                    </div>
+                  </form>
+                )}
+
                 {isAdmin && (
                   <form className="upload-panel" onSubmit={uploadPhoto}>
                     <div className="upload-heading"><div className="upload-icon"><Upload size={20} /></div><div><h3>Add a new photograph</h3><p>JPG, PNG or WebP · up to {MAX_FILE_MB} MB</p></div></div>
@@ -243,15 +359,17 @@ async function downloadPhoto(photo) {
                   <div className="empty-state"><div className="spinner" /><p>Loading photographs…</p></div>
                 ) : photos.length === 0 ? (
                   <div className="empty-state"><Camera size={28} /><h3>Your story starts here</h3><p>No photographs yet. Admin can sign in and upload the first photo.</p></div>
+                ) : visiblePhotos.length === 0 ? (
+                  <div className="empty-state"><Leaf size={28} /><h3>No photos in this category yet</h3><p>Try another category or choose All to see the full collection.</p></div>
                 ) : (
                   <div className="photo-grid">
-                    {photos.map((photo, index) => (
+                    {visiblePhotos.map((photo, index) => (
                       <article className={`photo-card photo-card-${index % 3}`} key={photo.id}>
                         <button className="photo-open" onClick={() => setSelected(photo)} aria-label={`Open ${photo.caption}`}>
                           <img src={photo.url} alt={photo.caption} loading="lazy" />
-                          <span className="photo-hover"><span>View photograph ↗</span></span>
+                          <span className="photo-hover"><span>𝕼𝖚𝖎𝖈𝖐 𝖁𝖎𝖊𝖜↗</span></span>
                         </button>
-                        <div className="photo-meta"><div><span className="photo-category">WILDFRAME COLLECTION</span><h3>{photo.caption}</h3></div>
+                        <div className="photo-meta"><div><span className="photo-category">{activeCategory === 'All' ? 'FIELD JOURNAL' : activeCategory.toUpperCase()}</span><h3>{photo.caption}</h3></div>
                           <div className="photo-actions">
                             <button className="small-action" title="Download photo" onClick={() => downloadPhoto(photo)}><ArrowDownToLine size={16} /></button>
                             {isAdmin && <button className="small-action delete-action" title="Delete photo" onClick={() => deletePhoto(photo)} disabled={busy}><Trash2 size={16} /></button>}
@@ -263,14 +381,32 @@ async function downloadPhoto(photo) {
                 )}
               </section>
       
-              <section className="about-section" id="about">
-                <div className="about-symbol"><Leaf size={32} /></div>
-                <div><span className="strip-label">BEHIND THE LENS</span><h2>Finding wonder in the <em>ordinary.</em></h2></div>
-                <p>WildFrame is a personal collection of nature as I see it — from the delicate lines of a spider web to the warm glow of a setting sun.</p>
+              <section className="story-section" id="about">
+                <div className="story-visual"><div className="story-photo" role="img" aria-label="Sunlight filtering through a quiet cedar forest" /><span className="story-seal">KEEP CLOSE<br />TO THE WILD<br />LOOK LONGER</span><span className="story-outline" /></div>
+                <div className="story-copy"><span className="strip-label">A SMALL INTRODUCTION</span><h2>For the <em>in-between</em> moments.</h2>
+                  <p>WildFrame is a field journal for people who find something worth keeping in the quiet between destinations.</p>
+                  <p>This independent project is devoted to the moods and details of the natural world: wind moving through cedar, the hush just before rain, and the brief stillness of a wild animal in its habitat.</p>
+                  <p>The gallery is designed for photography that values patience, honest color, and the smaller details most people miss.</p>
+                  <div className="story-signoff"><span /> <em>See you out there.</em></div>
+                </div>
+              </section>
+
+              <section className="contact-section" id="contact">
+                <div className="contact-intro"><span className="strip-label">LEAVE A FIELD NOTE</span><h2>Have a place<br />in mind?</h2><p>Tell us about a trail, ask about a photograph, or send a little kindness our way. We read every note, slowly.</p>
+                  <div className="contact-detail"><span>⌖</span> For wild places, wherever you find them</div><div className="contact-detail"><span>✉</span> Send a note directly from the website</div>
+                </div>
+                <form className="contact-form" onSubmit={prepareContactNote}>
+                  <label>YOUR NAME<input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="How should we call you?" required /></label>
+                  <label>EMAIL ADDRESS<input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="you@example.com" required /></label>
+                  <label>YOUR NOTE<textarea value={contactNote} onChange={(e) => setContactNote(e.target.value)} placeholder="A question, a place you love, or just a hello..." rows={5} required /></label>
+                  <button className="primary-button contact-submit" type="submit" disabled={contactSending}>{contactSending ? 'Sending…' : 'Send message'} <span>↗</span></button>
+                  <small>Messages are submitted directly from this form. Please do not include passwords or sensitive information.</small>
+                  {contactStatus && <p className="contact-status" role="status" aria-live="polite">{contactStatus}</p>}
+                </form>
               </section>
             </main>
       
-            <footer className="footer"><a className="brand footer-brand" href="#home"><span className="brand-mark"><Leaf size={18} /></span><span>WILDFRAME<small>NATURE THROUGH MY LENS</small></span></a><span>Made with patience & a love for nature.</span><a href="#home">Back to top ↑</a></footer>
+            <footer className="footer"><div className="footer-top"><a className="brand footer-brand" href="#home"><span className="footer-leaf"><Leaf size={23} /></span><span>wildframe</span></a><p>A field journal for the places that stay with us.</p></div><div className="footer-links"><div><span>FIND YOUR WAY</span><a href="#gallery">The collection</a><a href="#about">Our story</a><a href="#contact">Leave a note</a></div><div><span>FOLLOW THE TRAIL</span>{instagramUrl ? <a className="social-square" href={instagramUrl} target="_blank" rel="noreferrer noopener" aria-label="Open WildFrame Instagram profile"><Instagram size={20} /></a> : <span className="social-square social-square-empty" aria-label="Instagram link not set"><Instagram size={20} /></span>}</div></div><div className="footer-bottom"><span>© 2026 WildFrame · An independent field project</span><a href="#home">Back to the canopy ↑</a></div></footer>
       
             {showLogin && (
               <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowLogin(false) }}>

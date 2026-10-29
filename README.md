@@ -84,3 +84,22 @@ If login works but upload is denied, double-check that the UUID in SQL is the sa
 - Never put service-role or secret keys in client-side code.
 - The client checks a 8 MB limit and image MIME type for convenience; for a public production service, also consider stricter server-side image validation and abuse/rate controls.
 - Supabase and Vercel have plan limits. Check their current pricing/storage/bandwidth limits before relying on them for large collections.
+
+
+## Set the Instagram footer link
+
+1. Open your Supabase project and go to **SQL Editor**.
+2. Open `supabase/instagram-settings.sql` from this project.
+3. Replace `ADMIN_USER_UUID` in that SQL file with your admin account's UUID from **Authentication → Users**. Use the same UUID configured for your existing photo-admin policies.
+4. Run the SQL once.
+5. Deploy the updated website. Sign in using **Admin** and enter your Instagram profile URL in the **Instagram profile link** panel under the gallery.
+
+The Instagram URL is stored in Supabase, so visitors on other devices see the same link. The website name remains **WildFrame** and is not editable.
+
+
+## Contact form automatic email delivery
+
+The contact form submits messages to `openai3255@gmail.com` through FormSubmit AJAX, so visitors do not need to open their own email app. On first use, FormSubmit may send an activation/verification email to the recipient inbox; open that email and confirm the address before expecting normal delivery. Check Spam/Junk if it does not appear. This is a third-party service, not Supabase. Test with a non-sensitive message before publishing.
+
+## Contact form email delivery
+The Contact form uses EmailJS with the configured Service ID, Template ID, and Public Key in `src/App.jsx`. The template should use `{{name}}` and `{{message}}`; it may also use `{{email}}`, `{{from_email}}`, `{{from_name}}`, `{{reply_to}}`, `{{title}}`, and `{{time}}`. Keep the recipient set to `openai3255@gmail.com` in the EmailJS template. Do not place EmailJS private keys or other secrets in frontend code.
