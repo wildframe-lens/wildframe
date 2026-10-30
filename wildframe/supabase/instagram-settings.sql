@@ -24,15 +24,16 @@ drop policy if exists "Admin can insert WildFrame site settings" on public.site_
 create policy "Admin can insert WildFrame site settings"
 on public.site_settings for insert
 to authenticated
-with check (auth.uid() = 'ADMIN_USER_UUID'::uuid);
+with check (auth.uid() = '02d0dd59-3dd8-4c32-813d-73c7b640ed0b'::uuid);
 
 drop policy if exists "Admin can update WildFrame site settings" on public.site_settings;
 create policy "Admin can update WildFrame site settings"
 on public.site_settings for update
 to authenticated
-using (auth.uid() = 'ADMIN_USER_UUID'::uuid)
-with check (auth.uid() = 'ADMIN_USER_UUID'::uuid);
+using (auth.uid() = '02d0dd59-3dd8-4c32-813d-73c7b640ed0b'::uuid)
+with check (auth.uid() = '02d0dd59-3dd8-4c32-813d-73c7b640ed0b'::uuid);
 
 insert into public.site_settings (id, instagram_url)
 values (1, null)
 on conflict (id) do nothing;
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { Camera, Leaf, LockKeyhole, LogOut, Upload, X, Trash2, ArrowDownToLine, Images, Menu, Instagram, Save, Flower } from 'lucide-react'
 
@@ -102,6 +102,46 @@ function App() {
     loadPhotos()
     loadInstagramSetting()
     return () => listener.subscription.unsubscribe()
+  }, [])
+
+  // Keep the browser's Back button inside the gallery while a photograph is open.
+  const lightboxHistoryOpen = useRef(false)
+
+  useEffect(() => {
+    if (selected && !lightboxHistoryOpen.current) {
+      window.history.pushState(
+        { ...(window.history.state || {}), __wildframeLightbox: true },
+        '',
+        window.location.href
+      )
+      lightboxHistoryOpen.current = true
+    } else if (!selected && lightboxHistoryOpen.current) {
+      // Remove the temporary lightbox entry when the user closes it with the X button.
+      lightboxHistoryOpen.current = false
+      window.history.back()
+    }
+  }, [selected])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (lightboxHistoryOpen.current) {
+        lightboxHistoryOpen.current = false
+        setSelected(null)
+      }
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && lightboxHistoryOpen.current) {
+        setSelected(null)
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
   }, [])
 
   const photoCount = useMemo(() => String(photos.length).padStart(2, '0'), [photos.length])

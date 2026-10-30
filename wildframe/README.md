@@ -95,3 +95,11 @@ If login works but upload is denied, double-check that the UUID in SQL is the sa
 5. Deploy the updated website. Sign in using **Admin** and enter your Instagram profile URL in the **Instagram profile link** panel under the gallery.
 
 The Instagram URL is stored in Supabase, so visitors on other devices see the same link. The website name remains **WildFrame** and is not editable.
+
+
+## Contact form automatic email delivery
+
+The contact form submits messages to `openai3255@gmail.com` through FormSubmit AJAX, so visitors do not need to open their own email app. On first use, FormSubmit may send an activation/verification email to the recipient inbox; open that email and confirm the address before expecting normal delivery. Check Spam/Junk if it does not appear. This is a third-party service, not Supabase. Test with a non-sensitive message before publishing.
+
+## Contact form email delivery
+The Contact form uses EmailJS with the configured Service ID, Template ID, and Public Key in `src/App.jsx`. The template should use `{{name}}` and `{{message}}`; it may also use `{{email}}`, `{{from_email}}`, `{{from_name}}`, `{{reply_to}}`, `{{title}}`, and `{{time}}`. Keep the recipient set to `openai3255@gmail.com` in the EmailJS template. Do not place EmailJS private keys or other secrets in frontend code.

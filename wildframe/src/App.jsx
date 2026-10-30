@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { supabase, isSupabaseConfigured } from './supabaseClient'
-import { Camera, Leaf, LockKeyhole, LogOut, Upload, X, Trash2, ArrowDownToLine, Images, Menu, Instagram, Save } from 'lucide-react'
+import { Camera, Leaf, LockKeyhole, LogOut, Upload, X, Trash2, ArrowDownToLine, Images, Menu, Instagram, Save, Flower } from 'lucide-react'
 
 const BUCKET = 'wildframe-photos'
 const MAX_FILE_MB = 8
+const DEFAULT_INSTAGRAM_URL = 'https://www.instagram.com/hex.satyam/'
 const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
 
 function App() {
@@ -24,8 +25,10 @@ function App() {
   const [contactName, setContactName] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [contactNote, setContactNote] = useState('')
-  const [instagramUrl, setInstagramUrl] = useState('')
-  const [instagramInput, setInstagramInput] = useState('')
+  const [contactStatus, setContactStatus] = useState('')
+  const [contactSending, setContactSending] = useState(false)
+  const [instagramUrl, setInstagramUrl] = useState(DEFAULT_INSTAGRAM_URL)
+  const [instagramInput, setInstagramInput] = useState(DEFAULT_INSTAGRAM_URL)
 
   const isAdmin = Boolean(session?.user)
 
@@ -50,13 +53,17 @@ function App() {
   }
 
   async function loadInstagramSetting() {
-    if (!isSupabaseConfigured) return
+    if (!isSupabaseConfigured) {
+      setInstagramUrl(DEFAULT_INSTAGRAM_URL)
+      setInstagramInput(DEFAULT_INSTAGRAM_URL)
+      return
+    }
     const { data } = await supabase
       .from('site_settings')
       .select('instagram_url')
       .eq('id', 1)
       .maybeSingle()
-    const url = data?.instagram_url || ''
+    const url = data?.instagram_url || DEFAULT_INSTAGRAM_URL
     setInstagramUrl(url)
     setInstagramInput(url)
   }
@@ -97,13 +104,52 @@ function App() {
     return () => listener.subscription.unsubscribe()
   }, [])
 
+  // Keep the browser's Back button inside the gallery while a photograph is open.
+  const lightboxHistoryOpen = useRef(false)
+
+  useEffect(() => {
+    if (selected && !lightboxHistoryOpen.current) {
+      window.history.pushState(
+        { ...(window.history.state || {}), __wildframeLightbox: true },
+        '',
+        window.location.href
+      )
+      lightboxHistoryOpen.current = true
+    } else if (!selected && lightboxHistoryOpen.current) {
+      // Remove the temporary lightbox entry when the user closes it with the X button.
+      lightboxHistoryOpen.current = false
+      window.history.back()
+    }
+  }, [selected])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (lightboxHistoryOpen.current) {
+        lightboxHistoryOpen.current = false
+        setSelected(null)
+      }
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && lightboxHistoryOpen.current) {
+        setSelected(null)
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
   const photoCount = useMemo(() => String(photos.length).padStart(2, '0'), [photos.length])
-  const categories = ['All', 'Forests', 'Mountains', 'Wildlife', 'Rivers', 'Landscapes']
+  const categories = ['All', 'Forests','Wildlife','Flowers','Landscapes']
   const categoryKeywords = {
     Forests: ['forest', 'woods', 'cedar', 'tree', 'woodland'],
-    Mountains: ['mountain', 'alpine', 'peak', 'summit', 'snow'],
     Wildlife: ['wildlife', 'fox', 'bird', 'deer', 'animal', 'owl', 'bear'],
-    Rivers: ['river', 'waterfall', 'stream', 'lake', 'water', 'shore'],
+   Flowers: ['flower', 'flowers', 'blossom', 'petal', 'bloom', 'rose', 'tulip', 'sunflower', 'lotus', 'daisy'],
     Landscapes: ['landscape', 'sunset', 'sunrise', 'sky', 'meadow', 'valley']
   }
   const visiblePhotos = activeCategory === 'All' ? photos : photos.filter((photo) => {
@@ -111,11 +157,40 @@ function App() {
     return categoryKeywords[activeCategory].some((keyword) => text.includes(keyword))
   })
 
-  function prepareContactNote(e) {
+  async function prepareContactNote(e) {
     e.preventDefault()
-    const subject = encodeURIComponent(`WildFrame note from ${contactName}`)
-    const body = encodeURIComponent(`Name: ${contactName}\nEmail: ${contactEmail}\n\n${contactNote}`)
-    window.location.href = `mailto:?subject=${subject}&body=${body}`
+    setContactStatus('')
+    setContactSending(true)
+    try {
+      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: 'service_m2waixa',
+          template_id: 'template_8tv5o7d',
+          user_id: '2Da_2ra3_KVYaCwwH',
+          template_params: {
+            from_name: contactName.trim(),
+            reply_to: contactEmail.trim(),
+            message: contactNote.trim()
+          }
+        })
+      })
+      const resultText = await response.text()
+      if (!response.ok) {
+        throw new Error(resultText || 'EmailJS could not send the message.')
+      }
+      setContactStatus('Thank you! Your message has been sent successfully.')
+      setContactName('')
+      setContactEmail('')
+      setContactNote('')
+    } catch (err) {
+      console.error('WildFrame contact form error:', err)
+      const detail = String(err?.message || 'Unknown error').slice(0, 240)
+      setContactStatus(`Message send nahi ho paya: ${detail}`)
+    } finally {
+      setContactSending(false)
+    }
   }
 
   async function signIn(e) {
@@ -270,7 +345,7 @@ async function downloadPhoto(photo) {
                   <a className="primary-button" href="#gallery">Explore the gallery <span>↗</span></a>
                 </div>
                 <div className="hero-note"><Camera size={15} /> REAL MOMENTS. NATURALLY CAPTURED.</div>
-                <div className="hero-index">01 <span>/</span> 03</div>
+                <div className="hero-index">01 <span>/</span> {photoCount}</div>
               </section>
       
               <section className="intro-strip" aria-label="WildFrame philosophy">
@@ -332,7 +407,7 @@ async function downloadPhoto(photo) {
                       <article className={`photo-card photo-card-${index % 3}`} key={photo.id}>
                         <button className="photo-open" onClick={() => setSelected(photo)} aria-label={`Open ${photo.caption}`}>
                           <img src={photo.url} alt={photo.caption} loading="lazy" />
-                          <span className="photo-hover"><span>View photograph ↗</span></span>
+                          <span className="photo-hover"><span>𝕼𝖚𝖎𝖈𝖐 𝖁𝖎𝖊𝖜↗</span></span>
                         </button>
                         <div className="photo-meta"><div><span className="photo-category">{activeCategory === 'All' ? 'FIELD JOURNAL' : activeCategory.toUpperCase()}</span><h3>{photo.caption}</h3></div>
                           <div className="photo-actions">
@@ -358,14 +433,15 @@ async function downloadPhoto(photo) {
 
               <section className="contact-section" id="contact">
                 <div className="contact-intro"><span className="strip-label">LEAVE A FIELD NOTE</span><h2>Have a place<br />in mind?</h2><p>Tell us about a trail, ask about a photograph, or send a little kindness our way. We read every note, slowly.</p>
-                  <div className="contact-detail"><span>⌖</span> For wild places, wherever you find them</div><div className="contact-detail"><span>✉</span> Use the form to prepare a note</div>
+                  <div className="contact-detail"><span>⌖</span> For wild places, wherever you find them</div><div className="contact-detail"><span>✉</span> Send a note directly from the website</div>
                 </div>
                 <form className="contact-form" onSubmit={prepareContactNote}>
                   <label>YOUR NAME<input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="How should we call you?" required /></label>
                   <label>EMAIL ADDRESS<input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="you@example.com" required /></label>
                   <label>YOUR NOTE<textarea value={contactNote} onChange={(e) => setContactNote(e.target.value)} placeholder="A question, a place you love, or just a hello..." rows={5} required /></label>
-                  <button className="primary-button contact-submit" type="submit">Prepare your note <span>↗</span></button>
-                  <small>Your email app will open with the note prepared. Nothing is sent automatically.</small>
+                  <button className="primary-button contact-submit" type="submit" disabled={contactSending}>{contactSending ? 'Sending…' : 'Send message'} <span>↗</span></button>
+                  <small>Messages are submitted directly from this form. Please do not include passwords or sensitive information.</small>
+                  {contactStatus && <p className="contact-status" role="status" aria-live="polite">{contactStatus}</p>}
                 </form>
               </section>
             </main>
