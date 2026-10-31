@@ -419,7 +419,13 @@ async function downloadPhoto(photo) {
                   <p>Quiet moments, tiny creatures, golden skies — the world looks different when you take a closer look.</p>
                   <a className="primary-button" href="#gallery">Explore the gallery <span>↗</span></a>
                 </div>
-                <div className="hero-note"><Camera size={15} /> REAL MOMENTS. NATURALLY CAPTURED.</div>
+                <div className="hero-note">
+  <Camera size={15} />
+  <span className="hero-note-copy">
+    REAL MOMENTS. NATURALLY CAPTURED.
+                        <small>BY SATYAM</small>
+  </span>
+</div>
                 <div className="hero-index">01 <span>/</span> {photoCount}</div>
               </section>
       

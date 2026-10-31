@@ -468,127 +468,15 @@
     gap: 14px;
   }
 }
-
-/* Slightly tighter Contact page spacing for small screens */
-@media (max-width: 700px) {
-  .contact-section {
-    padding: 34px 20px 38px;
-    gap: 18px;
-  }
-
-  .contact-intro h2 {
-    font-size: clamp(36px, 9.2vw, 43px) !important;
-    line-height: 1;
-    margin: 9px 0 14px !important;
-  }
-
-  .contact-intro > p {
-    font-size: 12.5px;
-    line-height: 1.55;
-    margin-bottom: 16px;
-  }
-
-  .contact-detail {
-    margin: 8px 0;
-    gap: 10px;
-    font-size: 11.5px;
-  }
-
-  .contact-detail span {
-    font-size: 18px;
-  }
-
-  .contact-form {
-    gap: 15px;
-  }
-
-  .contact-form label {
-    gap: 6px;
-    font-size: 9px;
-  }
-
-  .contact-form input {
-    min-height: 48px;
-  }
-
-  .contact-form textarea {
-    min-height: 112px;
-  }
-
-  .contact-form input,
-  .contact-form textarea {
-    padding: 12px 14px;
-    font-size: 13px;
-  }
-
-  .contact-form small {
-    margin-top: -7px;
-    font-size: 9px;
-  }
-
-  .contact-submit {
-    min-height: 50px;
-  }
-
-  .footer {
-    padding: 29px 20px 21px;
-  }
-
-  .footer-top p {
-    margin: 12px 0 25px;
-  }
-
-  .footer-links {
-    margin-bottom: 22px;
-    gap: 20px;
-  }
-
-  .footer-links > div {
-    gap: 14px;
-  }
-
-  .footer-bottom {
-    padding-top: 16px;
-    gap: 11px;
-  }
-}
-
-
-/* Private WildFrame visitor analytics panel */
-.analytics-panel { margin: 0 0 22px; }
-.analytics-panel .upload-heading { align-items: center; }
-.analytics-refresh { margin-left: auto; }
-.analytics-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0 24px; }
-.analytics-stat { min-width: 0; padding: 17px; border: 1px solid #3a493b; background: #111a14; display: grid; gap: 8px; color: var(--green); }
-.analytics-stat strong { color: #edf2e8; font: 500 28px 'Playfair Display', serif; }
-.analytics-stat span { color: #aab6a6; font-size: 9px; letter-spacing: .13em; }
-.analytics-popular h4 { margin: 0 0 12px; color: #e7eee2; font: 500 18px 'Playfair Display', serif; }
-.analytics-photo-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); font-size: 12px; }
-.analytics-rank { color: var(--green); font-size: 10px; letter-spacing: .1em; }
-.analytics-photo-name { min-width: 0; overflow-wrap: anywhere; color: #e5ece0; }
-.analytics-photo-row strong { color: #c2d4a0; font-size: 11px; font-weight: 600; white-space: nowrap; }
-.analytics-popular > p, .analytics-note { color: var(--muted); font-size: 11px; line-height: 1.6; }
-.analytics-note { margin: 16px 0 0; }
-@media (max-width: 600px) {
-  .analytics-stats { gap: 7px; }
-  .analytics-stat { padding: 12px 9px; }
-  .analytics-stat strong { font-size: 23px; }
-  .analytics-stat span { font-size: 8px; letter-spacing: .07em; }
-  .analytics-photo-row { grid-template-columns: 25px minmax(0, 1fr) auto; gap: 8px; }
-}
-
-
-/* Analytics: show-all control */
-.analytics-popular-heading {
+.hero-note-copy {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 5px;
 }
-.analytics-popular-heading h4 {
-  margin: 0;
-}
-.analytics-show-all {
-  white-space: nowrap;
+
+.hero-note-copy small {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 2.5px;
+  color: rgba(255, 255, 255, 0.65);
 }
