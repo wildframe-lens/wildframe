@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { supabase, isSupabaseConfigured } from './supabaseClient'
-import { Camera, Leaf, LockKeyhole, LogOut, Upload, X, Trash2, ArrowDownToLine, Images, Menu, Instagram, Save, Flower } from 'lucide-react'
+import { Camera, Leaf, LockKeyhole, LogOut, Upload, X, Trash2, ArrowDownToLine, Images, Menu, Instagram, Save, Flower, BarChart3, Users, Eye, TrendingUp } from 'lucide-react'
 
 const BUCKET = 'wildframe-photos'
 const MAX_FILE_MB = 8
@@ -29,6 +29,9 @@ function App() {
   const [contactSending, setContactSending] = useState(false)
   const [instagramUrl, setInstagramUrl] = useState(DEFAULT_INSTAGRAM_URL)
   const [instagramInput, setInstagramInput] = useState(DEFAULT_INSTAGRAM_URL)
+  const [analytics, setAnalytics] = useState({ visitors: 0, visits: 0, photoViews: 0, popularPhotos: [] })
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [analyticsError, setAnalyticsError] = useState('')
 
   const isAdmin = Boolean(session?.user)
 
@@ -90,6 +93,63 @@ function App() {
     setNotice('Instagram link save ho gaya!')
   }
 
+  function getVisitorId() {
+    const key = 'wildframe_visitor_id'
+    try {
+      let id = window.localStorage.getItem(key)
+      if (!id) {
+        id = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+        window.localStorage.setItem(key, id)
+      }
+      return id
+    } catch {
+      return window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    }
+  }
+
+  async function recordAnalyticsEvent(eventType, photoId = null) {
+    if (!isSupabaseConfigured) return
+    try {
+      await supabase.from('site_analytics').insert({
+        visitor_id: getVisitorId(),
+        event_type: eventType,
+        photo_id: photoId
+      })
+    } catch (eventError) {
+      // Analytics must never interrupt normal gallery use.
+      console.debug('WildFrame analytics event was not recorded:', eventError)
+    }
+  }
+
+  async function loadAnalytics() {
+    if (!isAdmin || !isSupabaseConfigured) return
+    setAnalyticsLoading(true)
+    setAnalyticsError('')
+    const { data, error: analyticsFetchError } = await supabase
+      .from('site_analytics')
+      .select('visitor_id, event_type, photo_id, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10000)
+    if (analyticsFetchError) {
+      setAnalyticsError('Analytics load nahi hua. Supabase mein analytics SQL setup check karein.')
+      setAnalyticsLoading(false)
+      return
+    }
+    const rows = data || []
+    const visitorIds = new Set(rows.filter((row) => row.event_type === 'visit').map((row) => row.visitor_id))
+    const visits = rows.filter((row) => row.event_type === 'visit').length
+    const photoRows = rows.filter((row) => row.event_type === 'photo_view' && row.photo_id != null)
+    const counts = new Map()
+    photoRows.forEach((row) => counts.set(String(row.photo_id), (counts.get(String(row.photo_id)) || 0) + 1))
+    const photoNames = new Map(photos.map((photo) => [String(photo.id), photo.caption || 'Untitled photograph']))
+    const popularPhotos = [...counts.entries()]
+      .map(([id, views]) => ({ id, views, caption: photoNames.get(id) || `Photo #${id}` }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 5)
+    setAnalytics({ visitors: visitorIds.size, visits, photoViews: photoRows.length, popularPhotos })
+    setAnalyticsLoading(false)
+  }
+
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setLoading(false)
@@ -101,8 +161,18 @@ function App() {
     })
     loadPhotos()
     loadInstagramSetting()
+    try {
+      if (!window.sessionStorage.getItem('wildframe_visit_recorded')) {
+        window.sessionStorage.setItem('wildframe_visit_recorded', '1')
+        recordAnalyticsEvent('visit')
+      }
+    } catch { recordAnalyticsEvent('visit') }
     return () => listener.subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (isAdmin) loadAnalytics()
+  }, [isAdmin, photos.length])
 
   // Keep the browser's Back button inside the gallery while a photograph is open.
   const lightboxHistoryOpen = useRef(false)
@@ -275,6 +345,11 @@ function App() {
   }
 
  
+function openPhoto(photo) {
+  setSelected(photo)
+  recordAnalyticsEvent('photo_view', photo.id)
+}
+
 async function downloadPhoto(photo) {
   try {
     const response = await fetch(photo.url);
@@ -380,6 +455,33 @@ async function downloadPhoto(photo) {
                 )}
 
                 {isAdmin && (
+                  <section className="upload-panel analytics-panel" aria-label="Private visitor analytics">
+                    <div className="upload-heading">
+                      <div className="upload-icon"><BarChart3 size={20} /></div>
+                      <div><h3>Visitor Analytics</h3><p>Private dashboard · Only visible to the signed-in admin</p></div>
+                      <button className="small-action analytics-refresh" type="button" onClick={loadAnalytics} title="Refresh analytics" aria-label="Refresh analytics"><TrendingUp size={16} /></button>
+                    </div>
+                    {analyticsError && <div className="message error-message">{analyticsError}</div>}
+                    <div className="analytics-stats">
+                      <div className="analytics-stat"><Users size={18} /><strong>{analyticsLoading ? '…' : analytics.visitors.toLocaleString()}</strong><span>UNIQUE VISITORS</span></div>
+                      <div className="analytics-stat"><TrendingUp size={18} /><strong>{analyticsLoading ? '…' : analytics.visits.toLocaleString()}</strong><span>TOTAL VISITS</span></div>
+                      <div className="analytics-stat"><Eye size={18} /><strong>{analyticsLoading ? '…' : analytics.photoViews.toLocaleString()}</strong><span>PHOTO VIEWS</span></div>
+                    </div>
+                    <div className="analytics-popular">
+                      <h4>Most viewed photographs</h4>
+                      {analyticsLoading ? <p>Loading statistics…</p> : analytics.popularPhotos.length ? analytics.popularPhotos.map((photo, index) => (
+                        <div className="analytics-photo-row" key={photo.id}>
+                          <span className="analytics-rank">{String(index + 1).padStart(2, '0')}</span>
+                          <span className="analytics-photo-name">{photo.caption}</span>
+                          <strong>{photo.views.toLocaleString()} views</strong>
+                        </div>
+                      )) : <p>No photo views recorded yet.</p>}
+                    </div>
+                    <p className="analytics-note">Counts are anonymous. Unique visitors use a random browser ID; repeat visits are counted separately. Dashboard shows up to the latest 10,000 events.</p>
+                  </section>
+                )}
+
+                {isAdmin && (
                   <form className="upload-panel" onSubmit={uploadPhoto}>
                     <div className="upload-heading"><div className="upload-icon"><Upload size={20} /></div><div><h3>Add a new photograph</h3><p>JPG, PNG or WebP · up to {MAX_FILE_MB} MB</p></div></div>
                     <div className="upload-fields">
@@ -405,7 +507,7 @@ async function downloadPhoto(photo) {
                   <div className="photo-grid">
                     {visiblePhotos.map((photo, index) => (
                       <article className={`photo-card photo-card-${index % 3}`} key={photo.id}>
-                        <button className="photo-open" onClick={() => setSelected(photo)} aria-label={`Open ${photo.caption}`}>
+                        <button className="photo-open" onClick={() => openPhoto(photo)} aria-label={`Open ${photo.caption}`}>
                           <img src={photo.url} alt={photo.caption} loading="lazy" />
                           <span className="photo-hover"><span>𝕼𝖚𝖎𝖈𝖐 𝖁𝖎𝖊𝖜↗</span></span>
                         </button>
@@ -424,14 +526,20 @@ async function downloadPhoto(photo) {
               <section className="story-section" id="about">
                 <div className="story-visual"><div className="story-photo" role="img" aria-label="Sunlight filtering through a quiet cedar forest" /><span className="story-seal">KEEP CLOSE<br />TO THE WILD<br />LOOK LONGER</span><span className="story-outline" /></div>
                 <div className="story-copy"><span className="strip-label">A SMALL INTRODUCTION</span><h2>For the <em>in-between</em> moments.</h2>
-                  <p>WildFrame is a collection of nature’s quiet moments, where every photograph tells a story beyond words.</p>
-                  <p>Through our lens, we capture the beauty of untouched landscapes, the charm of wildlife, and the little details that make nature extraordinary.</p>
+                  <p>WildFrame is a field journal for people who find something worth keeping in the quiet between destinations.</p>
+                  <p>This independent project is devoted to the moods and details of the natural world: wind moving through cedar, the hush just before rain, and the brief stillness of a wild animal in its habitat.</p>
+                  <p>The gallery is designed for photography that values patience, honest color, and the smaller details most people miss.</p>
                   <div className="story-signoff"><span /> <em>See you out there.</em></div>
                 </div>
               </section>
 
               <section className="contact-section" id="contact">
-                <div className="contact-intro"><span className="strip-label">LEAVE A FIELD NOTE</span><h2>Have a place<br />in mind?</h2><p>Tell us about a trail, ask about a photograph, or send a little kindness our way. We read every note, slowly.</p>
+                <div className="contact-intro"><span
+  className="strip-label"
+  style={{ letterSpacing: "0.02em", fontSize: "10px" }}
+>
+  LEAVE A FIELD NOTE
+</span><h2>Have a place<br />in mind?</h2><p>Tell us about a trail, ask about a photograph, or send a little kindness our way. We read every note, slowly.</p>
                   <div className="contact-detail"><span>⌖</span> For wild places, wherever you find them</div><div className="contact-detail"><span>✉</span> Send a note directly from the website</div>
                 </div>
                 <form className="contact-form" onSubmit={prepareContactNote}>

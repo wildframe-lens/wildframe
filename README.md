@@ -103,3 +103,12 @@ The contact form submits messages to `openai3255@gmail.com` through FormSubmit A
 
 ## Contact form email delivery
 The Contact form uses EmailJS with the configured Service ID, Template ID, and Public Key in `src/App.jsx`. The template should use `{{name}}` and `{{message}}`; it may also use `{{email}}`, `{{from_email}}`, `{{from_name}}`, `{{reply_to}}`, `{{title}}`, and `{{time}}`. Keep the recipient set to `openai3255@gmail.com` in the EmailJS template. Do not place EmailJS private keys or other secrets in frontend code.
+
+
+## Private visitor analytics (Admin only)
+
+1. Open `supabase/analytics.sql` and replace `ADMIN_USER_UUID` with the same Supabase Auth user UUID used by the existing admin policies.
+2. In Supabase Dashboard, open **SQL Editor**, paste the updated SQL, and run it.
+3. Deploy the updated website. The Admin section in the Collection area will then show unique visitors, visits, photo views, and the five most-viewed photographs.
+
+Analytics uses a random anonymous browser ID stored locally. It does not collect visitor names or email addresses. Public visitors can submit anonymous view events but cannot read analytics; only the configured admin account can query the analytics table. The dashboard currently summarizes up to the latest 10,000 events.

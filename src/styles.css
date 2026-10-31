@@ -554,75 +554,25 @@
 }
 
 
-/* WildFrame contact page: compact, continuous contact + footer layout */
-.contact-section {
-  padding: 64px clamp(22px, 7vw, 104px) 68px;
-  gap: clamp(28px, 5vw, 76px);
-}
-.contact-intro .strip-label {
-  display: inline-block;
-  font-size: 9px;
-  letter-spacing: 0.045em;
-  line-height: 1.35;
-}
-.contact-intro h2 {
-  font-size: clamp(40px, 4.7vw, 59px);
-  line-height: 1.03;
-  margin: 13px 0 17px;
-}
-.contact-intro > p {
-  font-size: 13px;
-  line-height: 1.7;
-  margin: 0 0 22px;
-}
-.contact-detail {
-  margin: 10px 0;
-  gap: 11px;
-  font-size: 12px;
-}
-.contact-detail span { font-size: 20px; }
-.contact-form { gap: 17px; }
-.contact-form label { gap: 7px; }
-.contact-form input,
-.contact-form textarea { padding: 13px 15px; }
-.contact-form input { min-height: 49px; }
-.contact-form textarea { min-height: 112px; }
-.contact-submit { min-height: 51px; }
-.contact-section + .footer { margin-top: 0; }
-
-@media (max-width: 700px) {
-  .contact-section {
-    grid-template-columns: 1fr;
-    padding: 30px 20px 34px;
-    gap: 17px;
-  }
-  .contact-intro h2 {
-    font-size: clamp(35px, 9vw, 43px);
-    line-height: 1;
-    margin: 8px 0 13px;
-  }
-  .contact-intro > p {
-    font-size: 12.5px;
-    line-height: 1.55;
-    margin-bottom: 14px;
-  }
-  .contact-detail {
-    margin: 7px 0;
-    gap: 9px;
-    font-size: 11px;
-  }
-  .contact-detail span { font-size: 17px; }
-  .contact-form { gap: 13px; }
-  .contact-form label { gap: 6px; font-size: 9px; }
-  .contact-form input { min-height: 45px; }
-  .contact-form textarea { min-height: 100px; }
-  .contact-form input,
-  .contact-form textarea { padding: 11px 13px; font-size: 13px; }
-  .contact-form small { font-size: 9px; }
-  .contact-submit { min-height: 47px; }
-  .footer { padding: 26px 20px 20px; }
-  .footer-top p { margin: 10px 0 21px; }
-  .footer-links { margin-bottom: 19px; gap: 18px; }
-  .footer-links > div { gap: 12px; }
-  .footer-bottom { padding-top: 14px; gap: 10px; }
+/* Private WildFrame visitor analytics panel */
+.analytics-panel { margin: 0 0 22px; }
+.analytics-panel .upload-heading { align-items: center; }
+.analytics-refresh { margin-left: auto; }
+.analytics-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0 24px; }
+.analytics-stat { min-width: 0; padding: 17px; border: 1px solid #3a493b; background: #111a14; display: grid; gap: 8px; color: var(--green); }
+.analytics-stat strong { color: #edf2e8; font: 500 28px 'Playfair Display', serif; }
+.analytics-stat span { color: #aab6a6; font-size: 9px; letter-spacing: .13em; }
+.analytics-popular h4 { margin: 0 0 12px; color: #e7eee2; font: 500 18px 'Playfair Display', serif; }
+.analytics-photo-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); font-size: 12px; }
+.analytics-rank { color: var(--green); font-size: 10px; letter-spacing: .1em; }
+.analytics-photo-name { min-width: 0; overflow-wrap: anywhere; color: #e5ece0; }
+.analytics-photo-row strong { color: #c2d4a0; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.analytics-popular > p, .analytics-note { color: var(--muted); font-size: 11px; line-height: 1.6; }
+.analytics-note { margin: 16px 0 0; }
+@media (max-width: 600px) {
+  .analytics-stats { gap: 7px; }
+  .analytics-stat { padding: 12px 9px; }
+  .analytics-stat strong { font-size: 23px; }
+  .analytics-stat span { font-size: 8px; letter-spacing: .07em; }
+  .analytics-photo-row { grid-template-columns: 25px minmax(0, 1fr) auto; gap: 8px; }
 }
