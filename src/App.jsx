@@ -32,6 +32,7 @@ function App() {
   const [analytics, setAnalytics] = useState({ visitors: 0, visits: 0, photoViews: 0, popularPhotos: [] })
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [analyticsError, setAnalyticsError] = useState('')
+  const [showAllAnalyticsPhotos, setShowAllAnalyticsPhotos] = useState(false)
 
   const isAdmin = Boolean(session?.user)
 
@@ -145,7 +146,6 @@ function App() {
     const popularPhotos = [...counts.entries()]
       .map(([id, views]) => ({ id, views, caption: photoNames.get(id) || `Photo #${id}` }))
       .sort((a, b) => b.views - a.views)
-      .slice(0, 5)
     setAnalytics({ visitors: visitorIds.size, visits, photoViews: photoRows.length, popularPhotos })
     setAnalyticsLoading(false)
   }
@@ -468,8 +468,19 @@ async function downloadPhoto(photo) {
                       <div className="analytics-stat"><Eye size={18} /><strong>{analyticsLoading ? '…' : analytics.photoViews.toLocaleString()}</strong><span>PHOTO VIEWS</span></div>
                     </div>
                     <div className="analytics-popular">
-                      <h4>Most viewed photographs</h4>
-                      {analyticsLoading ? <p>Loading statistics…</p> : analytics.popularPhotos.length ? analytics.popularPhotos.map((photo, index) => (
+                      <div className="analytics-popular-heading">
+                        <h4>Most viewed photographs</h4>
+                        {analytics.popularPhotos.length > 5 && (
+                          <button
+                            className="small-action analytics-show-all"
+                            type="button"
+                            onClick={() => setShowAllAnalyticsPhotos((current) => !current)}
+                          >
+                            {showAllAnalyticsPhotos ? 'SHOW TOP 05 ' : `SHOW ALL (${analytics.popularPhotos.length})`}
+                          </button>
+                        )}
+                      </div>
+                      {analyticsLoading ? <p>Loading statistics…</p> : analytics.popularPhotos.length ? (showAllAnalyticsPhotos ? analytics.popularPhotos : analytics.popularPhotos.slice(0, 5)).map((photo, index) => (
                         <div className="analytics-photo-row" key={photo.id}>
                           <span className="analytics-rank">{String(index + 1).padStart(2, '0')}</span>
                           <span className="analytics-photo-name">{photo.caption}</span>

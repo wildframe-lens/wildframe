@@ -576,3 +576,19 @@
   .analytics-stat span { font-size: 8px; letter-spacing: .07em; }
   .analytics-photo-row { grid-template-columns: 25px minmax(0, 1fr) auto; gap: 8px; }
 }
+
+
+/* Analytics: show-all control */
+.analytics-popular-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.analytics-popular-heading h4 {
+  margin: 0;
+}
+.analytics-show-all {
+  white-space: nowrap;
+}
