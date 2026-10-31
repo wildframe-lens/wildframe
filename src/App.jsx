@@ -423,7 +423,7 @@ async function downloadPhoto(photo) {
   <Camera size={15} />
   <span className="hero-note-copy">
     REAL MOMENTS. NATURALLY CAPTURED.
-                        <small>BY SATYAM</small>
+    <small>BY SATYAM</small>
   </span>
 </div>
                 <div className="hero-index">01 <span>/</span> {photoCount}</div>
