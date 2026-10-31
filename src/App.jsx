@@ -424,9 +424,8 @@ async function downloadPhoto(photo) {
               <section className="story-section" id="about">
                 <div className="story-visual"><div className="story-photo" role="img" aria-label="Sunlight filtering through a quiet cedar forest" /><span className="story-seal">KEEP CLOSE<br />TO THE WILD<br />LOOK LONGER</span><span className="story-outline" /></div>
                 <div className="story-copy"><span className="strip-label">A SMALL INTRODUCTION</span><h2>For the <em>in-between</em> moments.</h2>
-                  <p>WildFrame is a field journal for people who find something worth keeping in the quiet between destinations.</p>
-                  <p>This independent project is devoted to the moods and details of the natural world: wind moving through cedar, the hush just before rain, and the brief stillness of a wild animal in its habitat.</p>
-                  <p>The gallery is designed for photography that values patience, honest color, and the smaller details most people miss.</p>
+                  <p>WildFrame is a collection of nature’s quiet moments, where every photograph tells a story beyond words.</p>
+                  <p>Through our lens, we capture the beauty of untouched landscapes, the charm of wildlife, and the little details that make nature extraordinary.</p>
                   <div className="story-signoff"><span /> <em>See you out there.</em></div>
                 </div>
               </section>
