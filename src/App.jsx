@@ -476,7 +476,7 @@ async function downloadPhoto(photo) {
                             type="button"
                             onClick={() => setShowAllAnalyticsPhotos((current) => !current)}
                           >
-                            {showAllAnalyticsPhotos ? 'SHOW TOP 05 ' : `SHOW ALL (${analytics.popularPhotos.length})`}
+                            {showAllAnalyticsPhotos ? 'ꜱʜᴏᴡ ᴛᴏᴘ (5) ' : `ꜱʜᴏᴡ ᴀʟʟ (${analytics.popularPhotos.length})`}
                           </button>
                         )}
                       </div>
