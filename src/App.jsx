@@ -34,7 +34,8 @@ function App() {
   const [analyticsError, setAnalyticsError] = useState('')
   const [showAllAnalyticsPhotos, setShowAllAnalyticsPhotos] = useState(false)
 
-  const isAdmin = Boolean(session?.user)
+  const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase()
+  const isAdmin = Boolean(ADMIN_EMAIL && session?.user?.email?.toLowerCase() === ADMIN_EMAIL)
 
   async function loadPhotos() {
     if (!isSupabaseConfigured) {
@@ -353,31 +354,88 @@ function openPhoto(photo) {
 async function downloadPhoto(photo) {
   try {
     const response = await fetch(photo.url);
+    if (!response.ok) throw new Error('Photo download failed');
 
-    console.log("Download response:", response.status, response.ok);
+    const sourceBlob = await response.blob();
+    const originalName = photo.file_path?.split('/').pop() || 'wildframe-photo';
 
-    if (!response.ok) {
-      throw new Error('Photo download failed');
+    // Signed-in Admin receives the untouched original file.
+    if (isAdmin) {
+      const objectUrl = URL.createObjectURL(sourceBlob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = originalName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+      return;
     }
 
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
+    // Visitors receive a copy with the exact supplied WildFrame logo.
+    // The original gallery image and Supabase object are never modified.
+    const imageBitmap = await createImageBitmap(sourceBlob);
+    const canvas = document.createElement('canvas');
+    canvas.width = imageBitmap.width;
+    canvas.height = imageBitmap.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas is not available');
+    ctx.drawImage(imageBitmap, 0, 0);
+
+    const watermark = new Image();
+    watermark.src = '/wildframe-watermark.png';<u><u></u></u>
+  
+    await new Promise((resolve, reject) => {
+      watermark.onload = resolve;
+      watermark.onerror = () => reject(new Error('Watermark logo could not be loaded'));
+    });
+
+    // Match the reference photo: compact logo at the bottom-right corner.
+    const logoWidth = canvas.width * 0.27;
+    const logoHeight = logoWidth * (watermark.naturalHeight / watermark.naturalWidth);
+    const marginX = canvas.width * 0.025;
+    const isPortrait = canvas.height > canvas.width;
+
+const marginY = canvas.height * (
+  isPortrait ? 0.04 : 0.025
+);
+
+    ctx.save();
+    ctx.globalAlpha = 1.0;
+    ctx.drawImage(
+      watermark,
+      canvas.width - logoWidth - marginX,
+      canvas.height - logoHeight - marginY,
+      logoWidth,
+      logoHeight
+    );
+    ctx.restore();
+    imageBitmap.close?.();
+
+    const outputType = ['image/jpeg', 'image/png', 'image/webp'].includes(sourceBlob.type)
+      ? sourceBlob.type
+      : 'image/jpeg';
+    const outputBlob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (result) => result ? resolve(result) : reject(new Error('Watermarked photo export failed')),
+        outputType,
+        0.96
+      );
+    });
+
+    const extension = outputType === 'image/png' ? '.png' : outputType === 'image/webp' ? '.webp' : '.jpg';
+    const baseName = originalName.replace(/\.[^.]+$/, '');
+    const objectUrl = URL.createObjectURL(outputBlob);
     const link = document.createElement('a');
-
     link.href = objectUrl;
-    link.download =
-      photo.file_path?.split('/').pop() ||
-      photo.file_path?.split('/').pop() ||
-      'wildframe-photo.jpg';
-
+    link.download = `${baseName}-WildFrame${extension}`;
     document.body.appendChild(link);
     link.click();
     link.remove();
-
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
   } catch (error) {
     console.error('Download error:', error);
-    setError?.('Photo download nahi hui. Dobara try karein.');
+    setError('Photo download nahi hui. Dobara try karein.');
   }
 }
 
