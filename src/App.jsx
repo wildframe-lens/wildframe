@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { supabase, isSupabaseConfigured } from './supabaseClient'
-import { Camera, Leaf, LockKeyhole, LogOut, Upload, X, Trash2, ArrowDownToLine, Images, Menu, Instagram, Save, Flower, BarChart3, Users, Eye, TrendingUp } from 'lucide-react'
+import { Camera, Leaf, LockKeyhole, LogOut, Upload, X, Trash2, ArrowDownToLine, Share2, Images, Menu, Instagram, Save, Flower, BarChart3, Users, Eye, TrendingUp } from 'lucide-react'
 
 const BUCKET = 'wildframe-photos'
 const MAX_FILE_MB = 8
@@ -174,6 +174,23 @@ function App() {
   useEffect(() => {
     if (isAdmin) loadAnalytics()
   }, [isAdmin, photos.length])
+
+  // Open the exact photograph when a shared WildFrame photo link is visited.
+  const sharedPhotoHandled = useRef(false)
+  useEffect(() => {
+    if (sharedPhotoHandled.current || photos.length === 0) return
+    const sharedPhotoId = new URLSearchParams(window.location.search).get('photo')
+    if (!sharedPhotoId) {
+      sharedPhotoHandled.current = true
+      return
+    }
+    const photo = photos.find((item) => String(item.id) === sharedPhotoId)
+    if (photo) {
+      sharedPhotoHandled.current = true
+      setSelected(photo)
+      recordAnalyticsEvent('photo_view', photo.id)
+    }
+  }, [photos])
 
   // Keep the browser's Back button inside the gallery while a photograph is open.
   const lightboxHistoryOpen = useRef(false)
@@ -376,6 +393,33 @@ function App() {
 function openPhoto(photo) {
   setSelected(photo)
   recordAnalyticsEvent('photo_view', photo.id)
+}
+
+async function sharePhoto(photo) {
+  const shareUrl = new URL(window.location.href)
+  shareUrl.searchParams.set('photo', String(photo.id))
+  shareUrl.hash = 'gallery'
+
+  const shareData = {
+    title: photo.caption || 'WildFrame Nature Photography',
+    text: `View this photograph on WildFrame: ${photo.caption || 'A moment in nature'}`,
+    url: shareUrl.toString()
+  }
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData)
+    } else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareData.url)
+      setNotice('Photo link copied. Share it with anyone!')
+    } else {
+      window.prompt('Copy this photo link:', shareData.url)
+    }
+  } catch (shareError) {
+    if (shareError?.name !== 'AbortError') {
+      setError('Photo link share nahi ho paya. Dobara try karein.')
+    }
+  }
 }
 
 async function downloadPhoto(photo) {
@@ -615,7 +659,8 @@ const marginY = canvas.height * (
                         </button>
                         <div className="photo-meta"><div><span className="photo-category">{activeCategory === 'All' ? 'FIELD JOURNAL' : activeCategory.toUpperCase()}</span><h3>{photo.caption}</h3></div>
                           <div className="photo-actions">
-                            <button className="small-action" title="Download photo" onClick={() => downloadPhoto(photo)}><ArrowDownToLine size={16} /></button>
+                            <button className="small-action" type="button" title="Share photo link" aria-label={`Share ${photo.caption}`} onClick={() => sharePhoto(photo)}><Share2 size={16} /></button>
+                            <button className="small-action" type="button" title="Download photo" aria-label={`Download ${photo.caption}`} onClick={() => downloadPhoto(photo)}><ArrowDownToLine size={16} /></button>
                             {isAdmin && <button className="small-action delete-action" title="Delete photo" onClick={() => deletePhoto(photo)} disabled={busy}><Trash2 size={16} /></button>}
                           </div>
                         </div>
@@ -678,7 +723,7 @@ const marginY = canvas.height * (
               <div className="lightbox" onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null) }}>
                 <button className="lightbox-close icon-button" onClick={() => setSelected(null)} aria-label="Close image"><X /></button>
                 <img src={selected.url} alt={selected.caption} />
-                <div className="lightbox-caption"><span>{selected.caption}</span><button className="small-action" onClick={() => downloadPhoto(selected)}><ArrowDownToLine size={17} /> Download</button></div>
+                <div className="lightbox-caption"><span>{selected.caption}</span><div className="photo-actions"><button className="small-action" type="button" onClick={() => sharePhoto(selected)} title="Share photo link" aria-label="Share photo link"><Share2 size={17} /></button><button className="small-action" type="button" onClick={() => downloadPhoto(selected)}><ArrowDownToLine size={17} /> Download</button></div></div>
               </div>
             )}
           </div>
