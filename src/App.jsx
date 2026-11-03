@@ -265,19 +265,46 @@ function App() {
   }
 
   async function signIn(e) {
-    e.preventDefault()
-    setError('')
-    setNotice('')
-    setBusy(true)
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-    setBusy(false)
-    if (signInError) setError('Login nahi ho paya. Email/password check karein.')
-    else {
-      setNotice('Admin login successful.')
-      setShowLogin(false)
-      setPassword('')
+  e.preventDefault()
+  setError('')
+  setNotice('')
+  setBusy(true)
+
+  try {
+    const { data, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password
+      })
+
+    if (signInError) {
+      setError('Login nahi ho paya. Email/password check karein.')
+      return
     }
+
+    const loggedInEmail = (
+      data?.user?.email ||
+      data?.session?.user?.email ||
+      ''
+    ).trim().toLowerCase()
+
+    if (loggedInEmail !== ADMIN_EMAIL.toLowerCase()) {
+      await supabase.auth.signOut()
+      setSession(null)
+      setError('This email is not authorized as Admin.')
+      return
+    }
+
+    setSession(data.session)
+    setNotice('Admin login successful.')
+    setShowLogin(false)
+    setPassword('')
+  } catch (err) {
+    setError('Login mein error aaya. Dobara try karein.')
+  } finally {
+    setBusy(false)
   }
+}
 
   async function signOut() {
     await supabase.auth.signOut()
