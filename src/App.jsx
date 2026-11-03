@@ -401,9 +401,10 @@ async function sharePhoto(photo) {
   shareUrl.hash = 'gallery'
 
   const shareData = {
-  title: 'WildFrame Photography',
-  url: shareUrl.toString()
-}
+    title: photo.caption || 'WildFrame Nature Photography',
+    text: `View this photograph on WildFrame: ${photo.caption || 'A moment in nature'}`,
+    url: shareUrl.toString()
+  }
 
   try {
     if (navigator.share) {
@@ -721,7 +722,45 @@ const marginY = canvas.height * (
             {selected && (
               <div className="lightbox" onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null) }}>
                 <button className="lightbox-close icon-button" onClick={() => setSelected(null)} aria-label="Close image"><X /></button>
-                <img src={selected.url} alt={selected.caption} />
+                <div
+                  className="lightbox-photo-frame"
+                  style={{
+                    position: 'relative',
+                    display: 'inline-block',
+                    maxWidth: '92vw',
+                    maxHeight: '82vh',
+                    lineHeight: 0
+                  }}
+                >
+                  <img
+                    src={selected.url}
+                    alt={selected.caption}
+                    style={{
+                      display: 'block',
+                      maxWidth: '92vw',
+                      maxHeight: '82vh',
+                      width: 'auto',
+                      height: 'auto',
+                      objectFit: 'contain'
+                    }}
+                  />
+                  {!isAdmin && (
+                    <img
+                      src="/wildframe-watermark.png"
+                      alt="WildFrame Photography watermark"
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        width: '27%',
+                        height: 'auto',
+                        right: '2.5%',
+                        bottom: '2.5%',
+                        pointerEvents: 'none',
+                        userSelect: 'none'
+                      }}
+                    />
+                  )}
+                </div>
                 <div className="lightbox-caption"><span>{selected.caption}</span><div className="photo-actions"><button className="small-action" type="button" onClick={() => sharePhoto(selected)} title="Share photo link" aria-label="Share photo link"><Share2 size={17} /></button><button className="small-action" type="button" onClick={() => downloadPhoto(selected)}><ArrowDownToLine size={17} /> Download</button></div></div>
               </div>
             )}
