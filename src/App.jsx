@@ -401,10 +401,9 @@ async function sharePhoto(photo) {
   shareUrl.hash = 'gallery'
 
   const shareData = {
-    title: photo.caption || 'WildFrame Nature Photography',
-    text: `View this photograph on WildFrame: ${photo.caption || 'A moment in nature'}`,
-    url: shareUrl.toString()
-  }
+  title: 'WildFrame Photography',
+  url: shareUrl.toString()
+}
 
   try {
     if (navigator.share) {
