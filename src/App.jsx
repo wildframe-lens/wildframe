@@ -18,6 +18,26 @@ function App() {
   const [password, setPassword] = useState('')
   const [showLogin, setShowLogin] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [lightboxZoom, setLightboxZoom] = useState(1)
+  const [lightboxPan, setLightboxPan] = useState({ x: 0, y: 0 })
+  const panTouchRef = useRef(null)
+  const panMouseRef = useRef(null)
+  const lastTapRef = useRef(0)
+  const lastTouchZoomAtRef = useRef(0)
+  const pinchStartRef = useRef(null)
+  const pinchZoomStartRef = useRef(1)
+  const wasPinchingRef = useRef(false)
+  const lightboxGestureMovedRef = useRef(false)
+
+  useEffect(() => {
+    setLightboxZoom(1)
+    setLightboxPan({ x: 0, y: 0 })
+    panTouchRef.current = null
+    lastTapRef.current = 0
+    lastTouchZoomAtRef.current = 0
+    pinchStartRef.current = null
+    wasPinchingRef.current = false
+  }, [selected?.id])
   const [caption, setCaption] = useState('')
   const [file, setFile] = useState(null)
   const [mobileMenu, setMobileMenu] = useState(false)
@@ -540,6 +560,129 @@ const marginY = canvas.height * (
 }
 
 
+  function toggleLightboxZoom() {
+    setLightboxZoom((current) => {
+      const next = current > 1 ? 1 : 2
+      if (next === 1) setLightboxPan({ x: 0, y: 0 })
+      return next
+    })
+  }
+
+  function clampLightboxPan(x, y, frame, zoom = lightboxZoom) {
+    const image = frame.querySelector('.lightbox-original-image')
+    if (!image) return { x: 0, y: 0 }
+    // Clamp against the visible frame, not just the image's unscaled dimensions.
+    const maxX = Math.max(0, (image.clientWidth * zoom - frame.clientWidth) / 2)
+    const maxY = Math.max(0, (image.clientHeight * zoom - frame.clientHeight) / 2)
+    return {
+      x: Math.max(-maxX, Math.min(maxX, x)),
+      y: Math.max(-maxY, Math.min(maxY, y))
+    }
+  }
+
+  function handleLightboxMouseDown(event) {
+    if (event.button !== 0 || lightboxZoom <= 1) return
+    event.preventDefault()
+    panMouseRef.current = { x: event.clientX, y: event.clientY }
+  }
+
+  function handleLightboxMouseMove(event) {
+    if (!panMouseRef.current || lightboxZoom <= 1) return
+    const dx = event.clientX - panMouseRef.current.x
+    const dy = event.clientY - panMouseRef.current.y
+    panMouseRef.current = { x: event.clientX, y: event.clientY }
+    const frame = event.currentTarget
+    // Read currentTarget and calculate synchronously; React may clear currentTarget
+    // before a queued state updater runs.
+    setLightboxPan((current) => {
+      const nextX = current.x + dx
+      const nextY = current.y + dy
+      return clampLightboxPan(nextX, nextY, frame)
+    })
+  }
+
+  function handleLightboxMouseUp() {
+    panMouseRef.current = null
+  }
+
+  function handleLightboxDoubleClick(event) {
+    event.preventDefault()
+    if (Date.now() - lastTouchZoomAtRef.current < 700) return
+    toggleLightboxZoom()
+  }
+
+  function handleLightboxTouchStart(event) {
+    if (event.touches.length === 1) {
+      lightboxGestureMovedRef.current = false
+      if (lightboxZoom > 1) {
+        panTouchRef.current = {
+          x: event.touches[0].clientX,
+          y: event.touches[0].clientY
+        }
+      }
+    }
+    if (event.touches.length === 2) {
+      panTouchRef.current = null
+      wasPinchingRef.current = true
+      lastTapRef.current = 0
+      const [a, b] = event.touches
+      pinchStartRef.current = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+      pinchZoomStartRef.current = lightboxZoom
+    }
+  }
+
+  function handleLightboxTouchMove(event) {
+    if (event.cancelable) event.preventDefault()
+
+    if (event.touches.length === 1 && lightboxZoom > 1 && panTouchRef.current) {
+      const touch = event.touches[0]
+      const dx = touch.clientX - panTouchRef.current.x
+      const dy = touch.clientY - panTouchRef.current.y
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) lightboxGestureMovedRef.current = true
+      panTouchRef.current = { x: touch.clientX, y: touch.clientY }
+      const frame = event.currentTarget
+      setLightboxPan((current) => clampLightboxPan(
+        current.x + dx,
+        current.y + dy,
+        frame
+      ))
+      return
+    }
+
+    if (event.touches.length === 2 && pinchStartRef.current) {
+      const [a, b] = event.touches
+      const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+      const nextZoom = Math.max(1, pinchZoomStartRef.current * (distance / pinchStartRef.current))
+      setLightboxZoom(nextZoom)
+      if (nextZoom === 1) setLightboxPan({ x: 0, y: 0 })
+    }
+  }
+
+  function handleLightboxTouchEnd(event) {
+    if (wasPinchingRef.current) {
+      if (event.touches.length === 0) {
+        wasPinchingRef.current = false
+        pinchStartRef.current = null
+      }
+      return
+    }
+    if (event.touches.length !== 0) return
+    panTouchRef.current = null
+    if (lightboxGestureMovedRef.current) {
+      lightboxGestureMovedRef.current = false
+      lastTapRef.current = 0
+      return
+    }
+    const now = Date.now()
+    if (now - lastTapRef.current < 550) {
+      toggleLightboxZoom()
+      lastTouchZoomAtRef.current = now
+      lastTapRef.current = 0
+    } else {
+      lastTapRef.current = now
+    }
+  }
+
   return (
     <div className="site-shell">
       <header className="nav">
@@ -749,13 +892,40 @@ const marginY = canvas.height * (
             )}
       
             {selected && (
-              <div className="lightbox" onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null) }}>
+              <div className={`lightbox ${lightboxZoom > 1 ? "lightbox-zoomed" : ""}`} onClick={(e) => { if (e.target === e.currentTarget) setSelected(null) }}>
                 <button className="lightbox-close icon-button" onClick={() => setSelected(null)} aria-label="Close image"><X /></button>
-                <div className="lightbox-photo-frame">
+                <div
+                  className="lightbox-photo-frame"
+                  onClick={(e) => e.stopPropagation()}
+                  onDoubleClick={handleLightboxDoubleClick}
+                  onTouchStart={handleLightboxTouchStart}
+                  onTouchMove={handleLightboxTouchMove}
+                  onTouchEnd={handleLightboxTouchEnd}
+                  onTouchCancel={() => {
+                    panTouchRef.current = null
+                    pinchStartRef.current = null
+                    wasPinchingRef.current = false
+                    lastTapRef.current = 0
+                    lightboxGestureMovedRef.current = false
+                  }}
+                  onMouseDown={handleLightboxMouseDown}
+                  onMouseMove={handleLightboxMouseMove}
+                  onMouseUp={handleLightboxMouseUp}
+                  onMouseLeave={handleLightboxMouseUp}
+                >
                   <img
                     className="lightbox-original-image"
                     src={selected.url}
                     alt={selected.caption}
+                    draggable={false}
+                    style={{
+                      transform: `translate3d(${lightboxPan.x}px, ${lightboxPan.y}px, 0) scale(${lightboxZoom})`,
+                      transformOrigin: 'center center',
+                      transition: 'none',
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                      WebkitUserDrag: 'none'
+                    }}
                   />
                   {!isAdmin && (
                     <img

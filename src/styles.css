@@ -1333,3 +1333,47 @@
     line-height: 1.5;
   }
 }
+
+
+/* Lightbox pan interaction only: preserve the existing visual design. */
+.lightbox-photo-frame {
+  overflow: hidden;
+  touch-action: none;
+  flex: 0 0 auto;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.lightbox-original-image {
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+
+/* Fullscreen photo viewing only while zoomed; normal lightbox layout stays unchanged. */
+.lightbox.lightbox-zoomed {
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: hidden !important;
+}
+.lightbox.lightbox-zoomed .lightbox-photo-frame {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  flex: 0 0 100%;
+  overflow: hidden;
+}
+.lightbox.lightbox-zoomed .lightbox-original-image {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+}
+.lightbox.lightbox-zoomed .lightbox-caption {
+  display: none !important;
+}
+.lightbox.lightbox-zoomed .lightbox-close {
+  z-index: 3;
+}
