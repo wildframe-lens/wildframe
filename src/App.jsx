@@ -77,10 +77,10 @@ function App() {
     e.preventDefault()
     setError('')
     setNotice('')
-    if (!isAdmin) return setError('Instagram link change karne ke liye Admin Login zaroori hai.')
+    if (!isAdmin) return setError('Admin Login Is Required To Change The Instagram Link.')
     const value = instagramInput.trim()
     if (value && !/^https:\/\/(www\.)?instagram\.com\//i.test(value)) {
-      return setError('Instagram ka valid profile URL daalein (https://www.instagram.com/username/).')
+      return setError('Please Enter A Valid Instagram Profile URL (https://www.instagram.com/username/).')
     }
     setBusy(true)
     const { error: saveError } = await supabase
@@ -88,11 +88,11 @@ function App() {
       .upsert({ id: 1, instagram_url: value || null }, { onConflict: 'id' })
     setBusy(false)
     if (saveError) {
-      setError('Instagram link save nahi hua. Supabase mein site_settings setup aur Admin UUID policy check karein.')
+      setError('Instagram Link Could Not Be Saved. Check The Supabase site_settings Setup And Admin UUID Policy.')
       return
     }
     setInstagramUrl(value)
-    setNotice('Instagram link save ho gaya!')
+    setNotice('Instagram Link Has Been Saved!')
   }
 
   function getVisitorId() {
@@ -109,8 +109,18 @@ function App() {
     }
   }
 
+  function isAdminAnalyticsBrowser() {
+    // Once this browser has an authenticated Admin session, keep its own
+    // browsing and photo views out of public visitor analytics.
+    try {
+      return window.localStorage.getItem('wildframe_admin_browser') === '1'
+    } catch {
+      return false
+    }
+  }
+
   async function recordAnalyticsEvent(eventType, photoId = null) {
-    if (!isSupabaseConfigured) return
+    if (!isSupabaseConfigured || isAdmin || isAdminAnalyticsBrowser()) return
     try {
       await supabase.from('site_analytics').insert({
         visitor_id: getVisitorId(),
@@ -133,7 +143,7 @@ function App() {
       .order('created_at', { ascending: false })
       .limit(10000)
     if (analyticsFetchError) {
-      setAnalyticsError('Analytics load nahi hua. Supabase mein analytics SQL setup check karein.')
+      setAnalyticsError('Analytics Could Not Be Loaded. Check The Supabase Analytics SQL Setup.')
       setAnalyticsLoading(false)
       return
     }
@@ -156,18 +166,36 @@ function App() {
       setLoading(false)
       return
     }
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    supabase.auth.getSession().then(({ data }) => {
+      const currentSession = data.session
+      const currentEmail = (currentSession?.user?.email || '').trim().toLowerCase()
+      const adminEmail = ADMIN_EMAIL.toLowerCase()
+      const currentIsAdmin = Boolean(adminEmail && currentEmail === adminEmail)
+      setSession(currentSession)
+
+      if (currentIsAdmin) {
+        try { window.localStorage.setItem('wildframe_admin_browser', '1') } catch {}
+      }
+
+      // Do not count the saved Admin session as a public visit.
+      if (!currentIsAdmin && !isAdminAnalyticsBrowser()) {
+        try {
+          if (!window.sessionStorage.getItem('wildframe_visit_recorded')) {
+            window.sessionStorage.setItem('wildframe_visit_recorded', '1')
+            recordAnalyticsEvent('visit')
+          }
+        } catch { recordAnalyticsEvent('visit') }
+      }
+    })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)
+      const nextEmail = (nextSession?.user?.email || '').trim().toLowerCase()
+      if (ADMIN_EMAIL && nextEmail === ADMIN_EMAIL.toLowerCase()) {
+        try { window.localStorage.setItem('wildframe_admin_browser', '1') } catch {}
+      }
     })
     loadPhotos()
     loadInstagramSetting()
-    try {
-      if (!window.sessionStorage.getItem('wildframe_visit_recorded')) {
-        window.sessionStorage.setItem('wildframe_visit_recorded', '1')
-        recordAnalyticsEvent('visit')
-      }
-    } catch { recordAnalyticsEvent('visit') }
     return () => listener.subscription.unsubscribe()
   }, [])
 
@@ -275,7 +303,7 @@ function App() {
     } catch (err) {
       console.error('WildFrame contact form error:', err)
       const detail = String(err?.message || 'Unknown error').slice(0, 240)
-      setContactStatus(`Message send nahi ho paya: ${detail}`)
+      setContactStatus(`Message Could Not Be Sent: ${detail}`)
     } finally {
       setContactSending(false)
     }
@@ -295,7 +323,7 @@ function App() {
       })
 
     if (signInError) {
-      setError('Login nahi ho paya. Email/password check karein.')
+      setError('Login Failed. Please Check Your Email And Password.')
       return
     }
 
@@ -313,11 +341,12 @@ function App() {
     }
 
     setSession(data.session)
-    setNotice('Admin login successful.')
+    try { window.localStorage.setItem('wildframe_admin_browser', '1') } catch {}
+    setNotice('Admin Login Successful.')
     setShowLogin(false)
     setPassword('')
   } catch (err) {
-    setError('Login mein error aaya. Dobara try karein.')
+    setError('A Login Error Occurred. Please Try Again.')
   } finally {
     setBusy(false)
   }
@@ -325,17 +354,17 @@ function App() {
 
   async function signOut() {
     await supabase.auth.signOut()
-    setNotice('You have been signed out.')
+    setNotice('You Have Been Signed Out.')
   }
 
   async function uploadPhoto(e) {
     e.preventDefault()
     setError('')
     setNotice('')
-    if (!file) return setError('Pehle ek photo select karein.')
-    if (!allowedTypes.includes(file.type)) return setError('Sirf JPG, PNG ya WebP image upload karein.')
-    if (file.size > MAX_FILE_MB * 1024 * 1024) return setError(`Photo ${MAX_FILE_MB} MB se chhoti honi chahiye.`)
-    if (!isAdmin) return setError('Upload karne ke liye Admin Login zaroori hai.')
+    if (!file) return setError('Please Select A Photo First.')
+    if (!allowedTypes.includes(file.type)) return setError('Please Upload Only JPG, PNG, Or WebP Images.')
+    if (file.size > MAX_FILE_MB * 1024 * 1024) return setError(`Photo Must Be Smaller Than ${MAX_FILE_MB} MB.`)
+    if (!isAdmin) return setError('Admin Login Is Required To Upload Photos.')
 
     setBusy(true)
     const safeName = file.name.toLowerCase().replace(/[^a-z0-9._-]/g, '-')
@@ -357,7 +386,7 @@ function App() {
     if (rowError) {
       await supabase.storage.from(BUCKET).remove([path])
       setBusy(false)
-      return setError(`Photo save nahi hui: ${rowError.message}`)
+      return setError(`Photo Could Not Be Saved: ${rowError.message}`)
     }
 
     setFile(null)
@@ -365,12 +394,12 @@ function App() {
     e.target.reset()
     await loadPhotos()
     setBusy(false)
-    setNotice('Photo gallery mein upload ho gayi!')
+    setNotice('Photo Has Been Uploaded To The Gallery!')
   }
 
   async function deletePhoto(photo) {
     if (!isAdmin) return
-    if (!window.confirm('Is photo ko permanently delete karna hai?')) return
+    if (!window.confirm('Are You Sure You Want To Permanently Delete This Photo?')) return
     setError('')
     setNotice('')
     setBusy(true)
@@ -385,7 +414,7 @@ function App() {
     else {
       if (selected?.id === photo.id) setSelected(null)
       setPhotos((old) => old.filter((p) => p.id !== photo.id))
-      setNotice('Photo delete ho gayi.')
+      setNotice('Photo Has Been Deleted.')
     }
   }
 
@@ -417,7 +446,7 @@ async function sharePhoto(photo) {
     }
   } catch (shareError) {
     if (shareError?.name !== 'AbortError') {
-      setError('Photo link share nahi ho paya. Dobara try karein.')
+      setError('Photo Link Could Not Be Shared. Please Try Again.')
     }
   }
 }
@@ -506,7 +535,7 @@ const marginY = canvas.height * (
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
   } catch (error) {
     console.error('Download error:', error);
-    setError('Photo download nahi hui. Dobara try karein.');
+    setError('Photo Could Not Be Downloaded. Please Try Again.');
   }
 }
 
@@ -722,46 +751,28 @@ const marginY = canvas.height * (
             {selected && (
               <div className="lightbox" onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null) }}>
                 <button className="lightbox-close icon-button" onClick={() => setSelected(null)} aria-label="Close image"><X /></button>
-                <div
-                  className="lightbox-photo-frame"
-                  style={{
-                    position: 'relative',
-                    display: 'inline-block',
-                    maxWidth: '92vw',
-                    maxHeight: '82vh',
-                    lineHeight: 0
-                  }}
-                >
+                <div className="lightbox-photo-frame">
                   <img
+                    className="lightbox-original-image"
                     src={selected.url}
                     alt={selected.caption}
-                    style={{
-                      display: 'block',
-                      maxWidth: '92vw',
-                      maxHeight: '82vh',
-                      width: 'auto',
-                      height: 'auto',
-                      objectFit: 'contain'
-                    }}
                   />
                   {!isAdmin && (
                     <img
+                      className="lightbox-watermark"
                       src="/wildframe-watermark.png"
                       alt="WildFrame Photography watermark"
                       aria-hidden="true"
-                      style={{
-                        position: 'absolute',
-                        width: '27%',
-                        height: 'auto',
-                        right: '2.5%',
-                        bottom: '2.5%',
-                        pointerEvents: 'none',
-                        userSelect: 'none'
-                      }}
                     />
                   )}
                 </div>
-                <div className="lightbox-caption"><span>{selected.caption}</span><div className="photo-actions"><button className="small-action" type="button" onClick={() => sharePhoto(selected)} title="Share photo link" aria-label="Share photo link"><Share2 size={17} /></button><button className="small-action" type="button" onClick={() => downloadPhoto(selected)}><ArrowDownToLine size={17} /> Download</button></div></div>
+                <div className="lightbox-caption">
+                  <span className="lightbox-caption-text">{selected.caption}</span>
+                  <div className="photo-actions lightbox-actions">
+                    <button className="small-action" type="button" onClick={() => sharePhoto(selected)} title="Share photo link" aria-label="Share photo link"><Share2 size={17} /></button>
+                    <button className="small-action lightbox-download" type="button" onClick={() => downloadPhoto(selected)} title="Download photo" aria-label="Download photo"><ArrowDownToLine size={17} /><span>Download</span></button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
