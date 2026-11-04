@@ -481,313 +481,855 @@
   color: rgba(255, 255, 255, 0.65);
 }
 
+/* =========================================================
+   WildFrame Collection — automatic 3-column masonry layout
+   Keeps every photograph's natural portrait/landscape ratio.
+   ========================================================= */
+.photo-grid {
+  display: block;
+  column-count: 3;
+  column-gap: 18px;
+  align-items: initial;
+}
+
+.photo-card,
+.photo-card-0,
+.photo-card-1,
+.photo-card-2 {
+  display: inline-block;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  margin: 0 0 18px;
+  overflow: hidden;
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  background: #142018;
+  border: 1px solid rgba(231, 239, 225, 0.10);
+  border-radius: 3px;
+  vertical-align: top;
+}
+
+/* Let the image itself determine the card height. No forced crop. */
+.photo-open,
+.photo-card-0 .photo-open,
+.photo-card-1 .photo-open,
+.photo-card-2 .photo-open {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: auto;
+  aspect-ratio: auto;
+  padding: 0;
+  overflow: hidden;
+  background: #142018;
+}
+
+.photo-open img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+  transition: transform .6s cubic-bezier(.2,.7,.2,1);
+}
+
+/* Keep the caption and actions over the bottom of each photograph. */
+.photo-open:after {
+  content: "";
+  position: absolute;
+  inset: 42% 0 0;
+  z-index: 0;
+  background: linear-gradient(transparent, rgba(4, 10, 6, .86));
+  pointer-events: none;
+}
+
+.photo-meta {
+  position: absolute;
+  left: 13px;
+  right: 13px;
+  bottom: 12px;
+  z-index: 1;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0;
+}
+
+.photo-meta > div:first-child {
+  min-width: 0;
+}
+
+.photo-category {
+  font-size: 8px;
+  letter-spacing: .14em;
+}
+
+.photo-meta h3 {
+  margin: 6px 0 0;
+  color: #f0f0e7;
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(12px, 1.35vw, 20px);
+  line-height: 1.16;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.photo-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 5px;
+}
+
+.photo-actions .small-action {
+  min-width: 32px;
+  width: 32px;
+  height: 32px;
+  background: rgba(7, 13, 9, .35);
+  border-color: rgba(240, 240, 231, .55);
+  color: #f0f0e7;
+}
+
+.photo-actions .small-action:hover {
+  background: rgba(194, 212, 160, .18);
+  color: var(--green);
+}
+
+/* Keep three photos visible across the row on phones too. */
+@media (max-width: 900px) {
+  .photo-grid { column-count: 3; column-gap: 12px; }
+  .photo-card,
+  .photo-card-0,
+  .photo-card-1,
+  .photo-card-2 { margin-bottom: 12px; }
+  .photo-meta { left: 8px; right: 8px; bottom: 8px; gap: 4px; }
+  .photo-meta h3 { font-size: clamp(10px, 1.8vw, 15px); }
+  .photo-category { font-size: 6px; }
+  .photo-actions { gap: 3px; }
+  .photo-actions .small-action {
+    min-width: 25px;
+    width: 25px;
+    height: 25px;
+  }
+  .photo-actions .small-action svg { width: 13px; height: 13px; }
+}
+
+@media (max-width: 600px) {
+  .photo-grid { column-count: 3; column-gap: 8px; }
+  .photo-card,
+  .photo-card-0,
+  .photo-card-1,
+  .photo-card-2 { margin-bottom: 8px; }
+  .photo-meta { left: 6px; right: 6px; bottom: 6px; gap: 3px; }
+  .photo-meta h3 { font-size: clamp(9px, 2.5vw, 12px); }
+  .photo-category { font-size: 5px; letter-spacing: .08em; }
+  .photo-actions { gap: 2px; }
+  .photo-actions .small-action {
+    min-width: 21px;
+    width: 21px;
+    height: 21px;
+    border-radius: 2px;
+  }
+  .photo-actions .small-action svg { width: 11px; height: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-open img { transition: none; }
+}
 
 
 /* =========================================================
-   WILDFRAME — PREMIUM PRIVATE VISITOR ANALYTICS
-   Scoped to the admin analytics panel; does not alter data logic.
+   FIX: row-wise upload order (left -> center -> right).
+   CSS columns were filling top-to-bottom per column, which
+   made the visual order differ from the newest-first data.
+   This grid keeps DOM order row-wise and preserves image ratio.
    ========================================================= */
-.analytics-panel {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  padding: clamp(22px, 3.2vw, 34px) !important;
-  border: 1px solid rgba(194, 212, 160, .24) !important;
-  border-radius: 16px !important;
-  background:
-    radial-gradient(ellipse at 100% 0%, rgba(133, 174, 94, .13), transparent 38%),
-    linear-gradient(145deg, rgba(28, 43, 32, .98), rgba(17, 29, 22, .98)) !important;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, .22), inset 0 1px 0 rgba(255,255,255,.035);
+.photo-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-flow: row;
+  align-items: start;
+  column-count: initial !important;
+  column-gap: 12px;
+  row-gap: 12px;
 }
-.analytics-panel::before {
+
+.photo-card,
+.photo-card-0,
+.photo-card-1,
+.photo-card-2 {
+  display: block !important;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  margin: 0 !important;
+  break-inside: auto;
+  -webkit-column-break-inside: auto;
+  grid-column: auto !important;
+  align-self: start;
+  overflow: hidden;
+}
+
+.photo-open,
+.photo-card-0 .photo-open,
+.photo-card-1 .photo-open,
+.photo-card-2 .photo-open {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: auto !important;
+  min-height: 0;
+  aspect-ratio: auto !important;
+  padding: 0;
+  overflow: hidden;
+}
+
+.photo-open img {
+  display: block;
+  width: 100%;
+  height: auto !important;
+  max-width: 100%;
+  object-fit: contain !important;
+}
+
+/* Narrow screens still show three columns, as requested. */
+@media (max-width: 900px) {
+  .photo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    column-gap: 10px;
+    row-gap: 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .photo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    column-gap: 8px;
+    row-gap: 8px;
+  }
+  .photo-card-0 { grid-column: auto !important; }
+}
+
+
+/* =========================================================
+   WILDFRAME FINAL COLLECTION
+   Three equal 3:4 preview cards per row, in newest-first
+   DOM order. object-fit: cover affects previews only.
+   Clicking opens selected.url in the full uncropped lightbox.
+   ========================================================= */
+.photo-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-flow: row !important;
+  align-items: start !important;
+  gap: 12px !important;
+  column-count: initial !important;
+}
+
+.photo-card,
+.photo-card-0,
+.photo-card-1,
+.photo-card-2 {
+  display: block !important;
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  aspect-ratio: 3 / 4 !important;
+  overflow: hidden !important;
+  background: #142018;
+  border: 1px solid rgba(231, 239, 225, .12);
+  border-radius: 3px;
+  grid-column: auto !important;
+}
+
+.photo-open,
+.photo-card-0 .photo-open,
+.photo-card-1 .photo-open,
+.photo-card-2 .photo-open {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  aspect-ratio: auto !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  background: #142018;
+  text-align: left;
+}
+
+.photo-open img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  object-fit: cover !important;
+  object-position: center;
+  transition: transform .6s cubic-bezier(.2,.7,.2,1);
+}
+
+.photo-open:hover img { transform: scale(1.04); }
+
+.photo-open:after {
   content: "";
   position: absolute;
-  z-index: -1;
-  top: 0;
-  left: 28px;
-  right: 28px;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #c2d4a0 28%, #7d9f60 72%, transparent);
-  opacity: .85;
+  inset: 42% 0 0;
+  z-index: 1;
+  background: linear-gradient(transparent, rgba(4,10,6,.86));
+  pointer-events: none;
 }
+
+.photo-hover { z-index: 2; }
+
+.photo-meta {
+  position: absolute !important;
+  left: 8px !important;
+  right: 8px !important;
+  bottom: 8px !important;
+  z-index: 3 !important;
+  display: flex !important;
+  align-items: end !important;
+  justify-content: space-between !important;
+  gap: 4px !important;
+  padding: 0 !important;
+}
+
+.photo-meta > div:first-child { min-width: 0; }
+
+.photo-meta h3 {
+  margin: 5px 0 0 !important;
+  color: #f0f0e7;
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(10px, 1.35vw, 18px) !important;
+  line-height: 1.13 !important;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.photo-category {
+  color: #d0d8c8;
+  font: 7px monospace;
+  letter-spacing: .09em;
+}
+
+.photo-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 3px;
+}
+
+.photo-actions .small-action {
+  min-width: 25px;
+  width: 25px;
+  height: 25px;
+  padding: 0 5px;
+  background: rgba(9,16,11,.58);
+  border-color: rgba(255,255,255,.5);
+  color: #f0f0e7;
+}
+
+.photo-actions .small-action svg { width: 13px; height: 13px; }
+
+@media (max-width: 900px) {
+  .photo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .photo-meta { left: 6px !important; right: 6px !important; bottom: 6px !important; gap: 3px !important; }
+  .photo-meta h3 { font-size: clamp(9px, 1.8vw, 14px) !important; }
+  .photo-category { font-size: 6px; }
+  .photo-actions .small-action { min-width: 22px; width: 22px; height: 22px; }
+}
+
+@media (max-width: 600px) {
+  .gallery-section { padding-left: 12px !important; padding-right: 12px !important; }
+  .photo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px 7px !important;
+  }
+  .photo-card,
+  .photo-card-0,
+  .photo-card-1,
+  .photo-card-2 { aspect-ratio: 3 / 4 !important; }
+  .photo-meta { left: 4px !important; right: 4px !important; bottom: 4px !important; gap: 2px !important; }
+  .photo-meta h3 { font-size: clamp(8px, 2.25vw, 11px) !important; line-height: 1.1 !important; }
+  .photo-category { font-size: 5px; letter-spacing: .035em; }
+  .photo-actions { gap: 2px; }
+  .photo-actions .small-action { min-width: 18px; width: 18px; height: 18px; padding: 0 2px; }
+  .photo-actions .small-action svg { width: 10px; height: 10px; }
+}
+
+/* =========================================================
+   WILDFRAME LIGHTBOX
+   Keep full original photo visible; caption and controls
+   occupy their own rows and never overlap horizontally.
+   ========================================================= */
+.lightbox {
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  gap: 12px !important;
+  padding: 58px 14px 24px !important;
+}
+
+.lightbox-photo-frame {
+  position: relative;
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: center;
+  max-width: 94vw;
+  max-height: calc(100dvh - 230px);
+  line-height: 0;
+}
+
+.lightbox-original-image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 94vw;
+  max-height: calc(100dvh - 250px);
+  object-fit: contain;
+  box-shadow: 0 15px 70px #000;
+}
+
+.lightbox-watermark {
+  position: absolute;
+  width: 27%;
+  height: auto;
+  right: 2.5%;
+  bottom: 2.5%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.lightbox-caption {
+  width: min(94vw, 1100px) !important;
+  max-width: 1100px;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  font-size: 16px !important;
+  line-height: 1.35;
+}
+
+.lightbox-caption-text {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.lightbox-actions {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.lightbox-actions .small-action {
+  min-height: 38px;
+  min-width: 42px;
+  padding: 0 13px;
+}
+
+.lightbox-download {
+  white-space: nowrap;
+  gap: 7px;
+}
+
+@media (max-width: 600px) {
+  .lightbox {
+    padding: 54px 12px 22px !important;
+  }
+  .lightbox-photo-frame {
+    max-width: 94vw;
+    max-height: calc(100dvh - 220px);
+  }
+  .lightbox-original-image {
+    max-width: 94vw;
+    max-height: calc(100dvh - 240px);
+  }
+  .lightbox-caption { width: 94vw !important; }
+  .lightbox-close { right: 14px; top: 14px; }
+}
+
+
+/* Lightbox action buttons: icon-only, equal square controls. */
+.lightbox-actions .lightbox-download {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  justify-content: center;
+  white-space: normal;
+}
+
+
+/* Lightbox controls: match the requested caption-left / actions-right row. */
+.lightbox-caption {
+  width: min(94vw, 1100px) !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  text-align: left;
+}
+
+.lightbox-caption-text {
+  flex: 1 1 auto !important;
+  min-width: 0;
+  text-align: left !important;
+  overflow-wrap: anywhere;
+}
+
+.lightbox-actions {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: flex-end !important;
+  gap: 8px;
+  margin: 0 !important;
+}
+
+.lightbox-actions .small-action {
+  min-height: 42px;
+  width: 52px;
+  min-width: 52px;
+  height: 42px;
+  padding: 0;
+  justify-content: center;
+}
+
+.lightbox-actions .lightbox-download {
+  width: auto;
+  min-width: 112px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.lightbox-actions .lightbox-download span {
+  display: inline;
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .lightbox-caption {
+    width: 94vw !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 7px !important;
+  }
+
+  .lightbox-caption-text {
+    flex: 1 1 auto !important;
+    font-size: clamp(13px, 3.8vw, 17px);
+    line-height: 1.25;
+    text-align: left !important;
+  }
+
+  .lightbox-actions {
+    width: auto !important;
+    flex: 0 0 auto !important;
+    gap: 6px;
+  }
+
+  .lightbox-actions .small-action {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px;
+  }
+
+  .lightbox-actions .lightbox-download {
+    width: auto;
+    min-width: 96px;
+    padding: 0 8px;
+    gap: 5px;
+  }
+
+  .lightbox-actions .lightbox-download span {
+    font-size: 12px;
+  }
+
+  .lightbox-actions .small-action svg {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 auto;
+  }
+}
+
+
+/* =========================================================
+   WildFrame Admin — Visitor Analytics responsive cleanup.
+   Scoped to analytics-panel only; Gallery and Lightbox stay
+   unchanged.
+   ========================================================= */
+.analytics-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
 .analytics-panel .upload-heading {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 25px;
+  gap: 14px;
+  min-width: 0;
 }
-.analytics-panel .upload-heading > div:nth-child(2) { min-width: 0; flex: 1; }
-.analytics-panel .upload-heading h3 {
-  margin: 0 0 5px;
-  color: #eef4e9;
-  font-size: clamp(18px, 2.2vw, 22px);
-  font-weight: 700;
-  letter-spacing: -.025em;
+
+.analytics-panel .upload-heading > div:nth-child(2) {
+  flex: 1 1 auto;
+  min-width: 0;
 }
-.analytics-panel .upload-heading p {
-  margin: 0;
-  color: #aab8a8;
-  font-size: 12px;
-  line-height: 1.55;
-}
-.analytics-panel .upload-icon {
-  width: 52px;
-  height: 52px;
-  flex: 0 0 52px;
-  display: grid;
-  place-items: center;
-  color: #d0e5b2;
-  border: 1px solid rgba(194, 212, 160, .19);
-  border-radius: 13px;
-  background: linear-gradient(145deg, rgba(128, 164, 99, .24), rgba(63, 96, 66, .16));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-}
+
 .analytics-panel .analytics-refresh {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
-  display: grid;
-  place-items: center;
-  color: #d7e8c2;
-  border: 1px solid rgba(194, 212, 160, .22);
-  border-radius: 11px;
-  background: rgba(194, 212, 160, .07);
-  transition: .2s ease;
-}
-.analytics-panel .analytics-refresh:hover {
-  color: #172219;
-  background: #c2d4a0;
-  transform: translateY(-2px);
-}
-.analytics-panel .analytics-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 13px;
-  margin: 0 0 27px;
-}
-.analytics-panel .analytics-stat {
-  min-width: 0;
-  min-height: 132px;
-  display: grid;
-  grid-template-columns: 34px 1fr;
-  grid-template-rows: 42px auto;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
   align-items: center;
-  column-gap: 9px;
-  row-gap: 7px;
-  padding: 17px 15px 15px;
-  border: 1px solid rgba(194, 212, 160, .17);
-  border-radius: 13px;
-  background: linear-gradient(145deg, rgba(42, 61, 44, .82), rgba(25, 40, 30, .88));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 8px 22px rgba(0,0,0,.12);
-  transition: border-color .2s ease, transform .2s ease, background .2s ease;
+  justify-content: center;
 }
-.analytics-panel .analytics-stat:hover {
-  transform: translateY(-3px);
-  border-color: rgba(194, 212, 160, .42);
-  background: linear-gradient(145deg, rgba(49, 72, 49, .92), rgba(27, 44, 32, .95));
+
+.analytics-stats {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  align-items: stretch;
 }
-.analytics-panel .analytics-stat > svg {
-  width: 32px;
-  height: 32px;
-  padding: 7px;
-  color: #c8dda8;
-  border-radius: 9px;
-  background: rgba(194, 212, 160, .10);
-  grid-column: 1;
-  grid-row: 1;
-}
-.analytics-panel .analytics-stat strong {
+
+.analytics-stat {
   min-width: 0;
-  color: #f0f5eb;
-  font-size: clamp(25px, 3vw, 34px);
-  line-height: 1;
-  font-weight: 700;
-  letter-spacing: -.045em;
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 14px 12px;
+  border: 1px solid rgba(190, 211, 170, .16);
+  border-radius: 4px;
+  background: rgba(190, 211, 170, .045);
+}
+
+.analytics-stat svg {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  color: #b8cb9d;
+}
+
+.analytics-stat strong {
+  display: block;
+  font-size: clamp(20px, 2.2vw, 28px);
+  line-height: 1.1;
+  font-weight: 600;
+  color: #edf1e8;
   font-variant-numeric: tabular-nums;
-  grid-column: 2;
-  grid-row: 1;
 }
-.analytics-panel .analytics-stat span {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  color: #a9b99f;
-  font-size: 9px;
-  line-height: 1.4;
-  font-weight: 700;
-  letter-spacing: .12em;
+
+.analytics-stat span {
+  display: block;
+  max-width: 100%;
+  color: #aebaa9;
+  font-size: 10px;
+  line-height: 1.3;
+  letter-spacing: .09em;
+  overflow-wrap: anywhere;
 }
-.analytics-panel .analytics-popular {
-  padding: 22px 21px 17px;
-  border: 1px solid rgba(194, 212, 160, .15);
-  border-radius: 13px;
-  background: rgba(9, 19, 13, .28);
+
+.analytics-popular {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
 }
-.analytics-panel .analytics-popular-heading {
+
+.analytics-popular-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 13px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
-.analytics-panel .analytics-popular-heading h4 {
+
+.analytics-popular-heading h4 {
   margin: 0;
-  color: #edf3e8;
-  font-size: clamp(15px, 1.8vw, 18px);
-  font-weight: 700;
-  letter-spacing: -.015em;
+  color: #e8eee4;
+  font-size: 18px;
+  line-height: 1.3;
 }
-.analytics-panel .analytics-show-all {
-  flex: 0 0 auto;
-  min-height: 36px;
+
+.analytics-popular-heading .analytics-show-all {
+  width: auto;
+  min-width: 0;
+  min-height: 38px;
+  height: auto;
   padding: 8px 12px;
-  color: #c9dda9;
-  border: 1px solid rgba(194, 212, 160, .25);
-  border-radius: 8px;
-  background: rgba(194, 212, 160, .08);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .07em;
+  white-space: nowrap;
+  font-size: 12px;
+  letter-spacing: .04em;
 }
-.analytics-panel .analytics-show-all:hover {
-  color: #172219;
-  border-color: #c2d4a0;
-  background: #c2d4a0;
+
+.analytics-photo-row {
+  display: grid !important;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(190, 211, 170, .13);
 }
-.analytics-panel .analytics-photo-row {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+
+.analytics-rank {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  min-height: 58px;
-  padding: 10px 2px;
-  border-bottom: 1px solid rgba(231, 239, 225, .09);
-}
-.analytics-panel .analytics-photo-row:last-child { border-bottom: 0; }
-.analytics-panel .analytics-rank {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  color: #c8dda8;
-  border: 1px solid rgba(194, 212, 160, .19);
-  border-radius: 8px;
-  background: rgba(194, 212, 160, .08);
-  font-size: 10px;
-  font-weight: 700;
+  justify-content: center;
+  width: 28px;
+  min-height: 28px;
+  border: 1px solid rgba(190, 211, 170, .24);
+  border-radius: 3px;
+  color: #c3d5a8;
+  font-size: 12px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.analytics-panel .analytics-photo-name {
+
+.analytics-photo-name {
+  display: block;
   min-width: 0;
-  color: #dce6d9;
-  font-size: 12px;
-  line-height: 1.55;
+  color: #e4e9e0;
+  font-size: 14px;
+  line-height: 1.45;
   overflow-wrap: anywhere;
 }
-.analytics-panel .analytics-photo-row strong {
-  color: #c6dba5;
+
+.analytics-photo-row strong {
+  display: block;
+  color: #c3d5a8;
+  font-size: 13px;
+  line-height: 1.4;
   white-space: nowrap;
-  font-size: 11px;
-  font-weight: 700;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.analytics-panel .analytics-note {
-  margin: 16px 2px 0;
-  color: #89998b;
-  font-size: 10px;
-  line-height: 1.7;
-}
-.analytics-panel > p:not(.analytics-note) {
-  color: #aab8a8;
-  font-size: 12px;
-}
-.analytics-panel .message { margin-bottom: 16px; }
 
-@media (max-width: 700px) {
-  .analytics-panel {
-    padding: 20px 17px !important;
-    border-radius: 13px !important;
-  }
+.analytics-note {
+  margin: 0;
+  color: #aab5a6;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+@media (max-width: 600px) {
+  .analytics-panel { gap: 18px; }
+
   .analytics-panel .upload-heading {
-    gap: 11px;
-    margin-bottom: 19px;
+    gap: 10px;
+    align-items: center;
   }
-  .analytics-panel .upload-icon {
-    width: 46px;
-    height: 46px;
-    flex-basis: 46px;
+
+  .analytics-panel .upload-heading h3 {
+    font-size: 18px;
   }
-  .analytics-panel .upload-heading p { font-size: 10px; }
+
+  .analytics-panel .upload-heading p {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
   .analytics-panel .analytics-refresh {
-    width: 39px;
-    height: 39px;
-    flex-basis: 39px;
+    flex-basis: 42px;
+    width: 42px;
+    height: 42px;
   }
-  .analytics-panel .analytics-stats {
-    gap: 8px;
-    margin-bottom: 20px;
+
+  .analytics-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
   }
-  .analytics-panel .analytics-stat {
-    min-height: 108px;
-    grid-template-columns: 1fr;
-    grid-template-rows: 29px 30px auto;
-    gap: 5px;
-    padding: 12px 9px 10px;
-    text-align: left;
+
+  .analytics-stat {
+    padding: 10px 7px;
+    gap: 6px;
   }
-  .analytics-panel .analytics-stat > svg {
-    width: 27px;
-    height: 27px;
-    grid-column: 1;
-    grid-row: 1;
+
+  .analytics-stat svg {
+    width: 18px;
+    height: 18px;
   }
-  .analytics-panel .analytics-stat strong {
-    grid-column: 1;
-    grid-row: 2;
-    font-size: clamp(21px, 6vw, 27px);
+
+  .analytics-stat strong {
+    font-size: clamp(18px, 5vw, 23px);
   }
-  .analytics-panel .analytics-stat span {
-    grid-column: 1;
-    grid-row: 3;
-    font-size: 7px;
-    letter-spacing: .07em;
-    overflow-wrap: anywhere;
+
+  .analytics-stat span {
+    font-size: 8px;
+    letter-spacing: .045em;
+    line-height: 1.25;
   }
-  .analytics-panel .analytics-popular {
-    padding: 16px 12px 12px;
+
+  .analytics-popular-heading h4 {
+    font-size: 16px;
   }
-  .analytics-panel .analytics-popular-heading {
-    align-items: flex-start;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
-  }
-  .analytics-panel .analytics-popular-heading h4 { font-size: 15px; }
-  .analytics-panel .analytics-show-all {
-    min-height: 32px;
+
+  .analytics-popular-heading .analytics-show-all {
+    min-height: 34px;
     padding: 7px 9px;
-    font-size: 9px;
-  }
-  .analytics-panel .analytics-photo-row {
-    grid-template-columns: 27px minmax(0, 1fr);
-    gap: 8px;
-    padding: 11px 0;
-  }
-  .analytics-panel .analytics-rank {
-    width: 26px;
-    height: 26px;
-    font-size: 9px;
-  }
-  .analytics-panel .analytics-photo-name {
-    font-size: 11px;
-    line-height: 1.45;
-  }
-  .analytics-panel .analytics-photo-row strong {
-    grid-column: 2;
-    justify-self: start;
-    margin-top: -3px;
     font-size: 10px;
   }
-  .analytics-panel .analytics-note {
-    font-size: 9px;
-    line-height: 1.6;
+
+  .analytics-photo-row {
+    grid-template-columns: 25px minmax(0, 1fr);
+    gap: 8px;
+    padding: 9px 0;
+  }
+
+  .analytics-rank {
+    width: 24px;
+    min-height: 24px;
+    font-size: 11px;
+  }
+
+  .analytics-photo-name {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .analytics-photo-row strong {
+    grid-column: 2;
+    text-align: left;
+    font-size: 12px;
+    margin-top: -3px;
+  }
+
+  .analytics-note {
+    font-size: 11px;
+    line-height: 1.5;
   }
 }
